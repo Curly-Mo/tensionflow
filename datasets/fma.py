@@ -5,6 +5,7 @@ import os
 import pandas as pd
 
 import datasets
+import util
 
 logger = logging.getLogger(__name__)
 
@@ -17,16 +18,16 @@ class FmaDataset(datasets.Dataset):
         self.data_dir = data_dir
         self.size = size
         self.splits = {}
-        for split in ('training', 'test', 'validation'):
+        for split in ('training',):# 'test', 'validation'):
             self.splits[split] = {}
             s = self.splits[split]
             s['X'], s['Y'], _ = self.get_dataset(split=split, size=self.size)
-        self.splits['training']['Y'], self.label_dict = datasets.indexify(self.splits['training']['Y'])
+        self.splits['training']['Y'], self.label_dict = util.indexify(self.splits['training']['Y'])
         for split in self.splits:
             if split != 'training':
-                self.splits[split]['Y'], _ = datasets.indexify(self.splits[split]['Y'], self.label_dict)
+                self.splits[split]['Y'], _ = util.indexify(self.splits[split]['Y'], self.label_dict)
 
-    def load(self, filepath):
+    def load_fma_file(self, filepath):
         logger.info(f'Loading track metadata from {filepath}')
         filename = os.path.basename(filepath)
 
@@ -67,13 +68,14 @@ class FmaDataset(datasets.Dataset):
 
     def path_from_id(self, id):
         prefix = os.path.join(self.data_dir, f'fma_{self.size}')
+        prefix = os.path.expanduser(prefix)
         id = str(id).zfill(6)
         return os.path.join(prefix, id[0:3], id + '.mp3')
 
     def get_dataset(self, split='training', size='small'):
         logger.info(f'Loading dataset split={split}, size={size}')
         filepath = os.path.join(self.data_dir, 'fma_metadata/tracks.csv')
-        tracks = self.load(filepath)
+        tracks = self.load_fma_file(filepath)
 
         subset = tracks['set', 'subset'] == size
         if split == 'all':
@@ -85,7 +87,7 @@ class FmaDataset(datasets.Dataset):
         # val = tracks['set', 'split'] == 'validation'
         # test = tracks['set', 'split'] == 'test'
         genres_filepath = os.path.join(self.data_dir, 'fma_metadata/genres.csv')
-        genres = self.load(genres_filepath)
+        genres = self.load_fma_file(genres_filepath)
         labels = {row[0]: {'index': i, 'name': row[3], 'id': row[0]} for i, row in enumerate(genres.itertuples())}
 
         Y = tracks.loc[subset & split, ('track', 'genres_all')].values
@@ -98,7 +100,7 @@ class FmaDataset(datasets.Dataset):
 
     def get_dataset_single_genre(self, type='training'):
         filepath = os.path.join(self.data_dir, 'fma_metadata/tracks.csv')
-        tracks = self.load(filepath)
+        tracks = self.load_fma_file(filepath)
 
         small = tracks['set', 'subset'] <= 'small'
         split = tracks['set', 'split'] == type
@@ -106,7 +108,7 @@ class FmaDataset(datasets.Dataset):
         # val = tracks['set', 'split'] == 'validation'
         # test = tracks['set', 'split'] == 'test'
         genres_filepath = os.path.join(self.data_dir, 'fma_metadata/genres.csv')
-        genres = self.load(genres_filepath)
+        genres = self.load_fma_file(genres_filepath)
         labels = {row[3]: {'index': i, 'name': row[3], 'id': row[0]} for i, row in enumerate(genres.itertuples())}
 
         Y = tracks.loc[small & split, ('track', 'genre_top')].values

@@ -1,95 +1,85 @@
-from bidict import bidict
+import collections
+import logging
+from functools import partial
+
 import numpy as np
 import tensorflow as tf
-import logging
-import collections
+
+import util
 
 logger = logging.getLogger(__name__)
 
 
 class Dataset(object):
-    def __init__(self):
-        X, Y = self.get_dataset()
+    def __init__(self, filepath=None):
+        if filepath:
+            self.load(filepath)
+        pass
 
-    def dump(self, output, split, preprocessor=None):
-        X = np.array(self.splits[split]['X'])
-        Y = self.splits[split]['Y']
-        features_placeholder = tf.placeholder(X.dtype, X.shape)
-        labels_placeholder = tf.placeholder(dtype='uint32')
-        dataset = tf.data.Dataset.from_tensor_slices((features_placeholder, labels_placeholder))
-        if preprocessor:
-            dataset = dataset.map(preprocessor)
-        dataset = dataset.repeat(1)
-        iterator = dataset.make_initializable_iterator()
-        next_element = iterator.get_next()
-        with tf.Session() as sess, tf.python_io.TFRecordWriter(output) as writer:
-            feed_dict = {
-                features_placeholder: X,
-                labels_placeholder: Y,
+    def dump(self, output, split=None, preprocessor=util.identity_func):
+        if split:
+            splits = [split]
+        else:
+            splits = [key for key in self.splits]
+        for split in splits:
+            logger.info(f'Dumping split: {split}')
+            X = self.splits[split]['X']
+            Y = self.splits[split]['Y']
+            logger.info('Determining processed dtypes...')
+            x, y = preprocessor(X[0], Y[0])
+            x_dtype = tf.as_dtype(np.array(x).dtype)
+            y_dtype = tf.as_dtype(np.array(y).dtype)
+            logger.info(f'Preprocess dtypes: {(x_dtype, y_dtype)}')
+            def gen(X, Y):
+                for x, y in zip(X[0:2], Y[0:2]):
+                    yield preprocessor(x, y)
+            data_gen = partial(gen, X, Y)
+            with tf.Session().as_default() as sess, tf.python_io.TFRecordWriter(output) as writer:
+                dataset = tf.data.Dataset.from_generator(data_gen, (x_dtype, y_dtype))
+                next_element = dataset.make_one_shot_iterator().get_next()
+                while True:
+                    try:
+                        x, y = sess.run(next_element)
+                        logger.info(x)
+                        logger.info(y)
+                        features = util.map_if_collection(util._dtype_feature, x)
+                        if not isinstance(features, collections.Iterable):
+                            features = [features]
+                        logger.info(features)
+                        feature_list = {
+                            'feature_list': {
+                                'features': tf.train.FeatureList(feature=features),
+                            }
+                        }
+                        logger.info(feature_list)
+                        context = {
+                            'feature': {
+                                'labels': util._dtype_feature(y),
+                            },
+                        }
+                        example = tf.train.SequenceExample(feature_lists=feature_list, context=context)
+                        writer.write(example.SerializeToString())
+                    except tf.errors.OutOfRangeError:
+                        break
+
+    def load(self, filename, dtypes={'labels': tf.int64, 'features': tf.float32}):
+        def _parse_function(example):
+            context_features = {
+                'labels': tf.VarLenFeature(dtype=dtypes['labels']),
             }
-            sess.run(iterator.initializer, feed_dict=feed_dict)
-            while True:
-                try:
-                    x, y = sess.run(next_element)
-                    logger.info(x)
-                    logger.info(y)
-                    feature = {
-                        'X': _bytes_feature(x),
-                        'Y': _int64_feature(y),
-                    }
-                    example = tf.train.Example(features=tf.train.Features(feature=feature))
-                    writer.write(example.SerializeToString())
-                except tf.errors.OutOfRangeError:
-                    break
-
-
-def indexify(labels, label_dict=None):
-    if label_dict is None:
-        distinct = set()
-        for y in labels:
-            if isinstance(y, str):
-                distinct.add(y)
-            else:
-                for label in y:
-                    distinct.add(label)
-        distinct = sorted(distinct)
-        label_dict = bidict((label, index) for index, label in enumerate(distinct))
-    logger.info(f'Converting labels to index range: [{min(label_dict.values())}-{max(label_dict.values())}]')
-    y = [map_if_collection(label_dict.get, label) for label in labels]
-    return y, label_dict
-
-
-def one_hotify(labels, label_dict=None):
-    if label_dict is None:
-        labels, label_dict = indexify(labels, label_dict)
-    y = np.vstack([one_hot(label, label_dict.inv) for label in labels])
-    return y, label_dict
-
-
-def one_hot(index_labels, label_dict):
-    y = np.zeros([1, len(label_dict)], dtype=np.dtype('uint8'))
-    y[0, index_labels] = 1
-    return y
-
-
-def one_hot_to_some_hot(Y):
-    return Y/Y.sum(axis=1, keepdims=True)
-
-
-def map_if_collection(func, obj):
-    if not isinstance(obj, (str, bytes)) and isinstance(obj, collections.Iterable):
-        return tuple(map(func, obj))
-    else:
-        return func(obj)
-
-
-def _int64_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-
-
-def _float_feature(value):
-    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
-
-
-def _bytes_feature(value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+            sequence_features = {
+                'features': tf.VarLenFeature(dtype=dtypes['features'])
+            }
+            context, sequence = tf.parse_single_sequence_example(
+                example,
+                context_features,
+                sequence_features
+            )
+            features = tf.sparse_tensor_to_dense(sequence['features'],
+                                                 default_value=util.default_of_type(dtypes['features']))
+            labels = tf.sparse_tensor_to_dense(context['labels'],
+                                               default_value=util.default_of_type(dtypes['labels']))
+            return features, labels
+        dataset = tf.data.TFRecordDataset(filename)
+        dataset = dataset.map(_parse_function)
+        return dataset
