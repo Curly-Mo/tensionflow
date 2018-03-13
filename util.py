@@ -78,3 +78,9 @@ def _dtype_feature(ndarray):
         return tf.train.Feature(int64_list=tf.train.Int64List(value=ndarray))
     else:
         return tf.train.Feature(bytes_list=tf.train.BytesList(value=ndarray))
+
+
+def wrap_tf_py_func(py_func, Tout):
+    def f(*args):
+        return tf.py_func(py_func, inp=args, Tout=Tout)
+    return f

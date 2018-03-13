@@ -1,6 +1,10 @@
+import logging
 import collections
 import numpy as np
 import librosa
+import tensorflow as tf
+
+logger = logging.getLogger(__name__)
 
 
 def one_hot(label_ids, label_dict):
@@ -83,8 +87,22 @@ def split_spec(S, win_size, hop_size):
         X.append(x)
         i += hop_size
     if not X:
-        return None
+        return np.empty(S.shape)
     return np.stack(X)
+
+def split_spec_tf(S, win_size, hop_size):
+    s = tf.unstack(S)
+    X = []
+    i = 0
+    logger.info(s)
+    while i + win_size < len(s):
+        x = s[i:i+win_size]
+        X.append(tf.stack(x))
+        i += hop_size
+    logger.info(X)
+    if not X:
+        return tf.empty(S.shape)
+    return tf.stack(X)
 
 
 def balanced_sample(X_in, Y_in):

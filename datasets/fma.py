@@ -14,18 +14,14 @@ DATA_DIR = '~/datasets/fma'
 
 
 class FmaDataset(datasets.Dataset):
-    def __init__(self, size='small', data_dir=DATA_DIR):
+    def __init__(self, size='small', data_dir=DATA_DIR, *args, **kwargs):
         self.data_dir = data_dir
         self.size = size
-        self.splits = {}
-        for split in ('training',):# 'test', 'validation'):
-            self.splits[split] = {}
-            s = self.splits[split]
-            s['X'], s['Y'], _ = self.get_dataset(split=split, size=self.size)
-        self.splits['training']['Y'], self.label_dict = util.indexify(self.splits['training']['Y'])
-        for split in self.splits:
-            if split != 'training':
-                self.splits[split]['Y'], _ = util.indexify(self.splits[split]['Y'], self.label_dict)
+        super().__init__(*args, **kwargs)
+
+    def load_features_and_labels(self, split):
+        X, Y, _ = self.get_dataset(split=split, size=self.size)
+        return X, Y
 
     def load_fma_file(self, filepath):
         logger.info(f'Loading track metadata from {filepath}')
