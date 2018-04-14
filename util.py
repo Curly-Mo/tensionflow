@@ -44,13 +44,13 @@ def indexify(labels, label_dict=None):
 def one_hotify(labels, label_dict=None):
     if label_dict is None:
         labels, label_dict = indexify(labels, label_dict)
-    y = np.vstack([one_hot(label, label_dict.inv) for label in labels])
+    y = np.stack([one_hot(label, len(label_dict.inv)) for label in labels])
     return y, label_dict
 
 
-def one_hot(index_labels, label_dict):
-    y = np.zeros([1, len(label_dict)], dtype=np.dtype('uint8'))
-    y[0, index_labels] = 1
+def one_hot(index_labels, num_labels):
+    y = np.zeros([num_labels], dtype=np.dtype('uint8'))
+    y[np.asarray(index_labels)] = 1
     return y
 
 
@@ -71,7 +71,6 @@ def _dtype_feature(ndarray):
         logger.info(f'Converting {ndarray} to ndarray')
         ndarray = np.array([ndarray])
     dtype = ndarray.dtype
-    logger.info(f'{dtype}')
     if np.issubdtype(dtype, np.float):
         return tf.train.Feature(float_list=tf.train.FloatList(value=ndarray))
     elif np.issubdtype(dtype, np.integer):

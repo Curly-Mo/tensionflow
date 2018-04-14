@@ -17,12 +17,12 @@ def one_hot(label_ids, label_dict):
 def some_hot(label_ids, label_dict):
     indices = [label_dict[id] for id in label_ids]
     y = np.zeros([1, len(label_dict)])
-    y[0, indices] = 1/len(label_ids)
+    y[0, indices] = 1 / len(label_ids)
     return y
 
 
 def one_hot_to_some_hot(Y):
-    return Y/Y.sum(axis=1, keepdims=True)
+    return Y / Y.sum(axis=1, keepdims=True)
 
 
 def distinct_from_labels(Y):
@@ -38,7 +38,7 @@ def distinct_from_labels(Y):
     return labels, label_dict
 
 
-def flatmap(func,  iterable):
+def flatmap(func, iterable):
     for item in iterable:
         try:
             yield func(item)
@@ -50,7 +50,7 @@ def flatmap(func,  iterable):
 def training_features(x_files, y_labels):
     labels, label_dict = distinct_from_labels(y_labels)
     win_size = 64
-    hop_size = win_size*15//16
+    hop_size = win_size * 15 // 16
     y_train = np.vstack([one_hot(y, label_dict) for y in y_labels])
 
     x_train_spec = flatmap(mel_spec, x_files)
@@ -70,12 +70,10 @@ def training_features(x_files, y_labels):
 
 
 def mel_spec(audio_path, n_fft=2048, sr=11025):
-    print(audio_path)
     y, sr = librosa.load(audio_path, mono=True, sr=sr)
     y, index = librosa.effects.trim(y)
     melspec = librosa.feature.melspectrogram(y, n_fft=n_fft)
     melspec = np.float32(melspec)
-    print(melspec.T.shape)
     return melspec.T
 
 
@@ -83,25 +81,29 @@ def split_spec(S, win_size, hop_size):
     X = []
     i = 0
     while i + win_size < len(S):
-        x = S[i:i+win_size]
+        x = S[i:i + win_size]
         X.append(x)
         i += hop_size
     if not X:
         return np.empty(S.shape)
     return np.stack(X)
 
-def split_spec_tf(S, win_size, hop_size):
-    s = tf.unstack(S)
+
+def split_spec_tf(S, win_size, hop_size, max_len=None):
+    logger.info(S.shape)
+    if max_len:
+        S = tf.reshape(S[0:max_len], tf.TensorShape(max_len).concatenate(S.shape[1:]))
+        logger.info(S.shape)
     X = []
     i = 0
-    logger.info(s)
-    while i + win_size < len(s):
-        x = s[i:i+win_size]
-        X.append(tf.stack(x))
+    while i + win_size < S.shape[0]:
+        x = tf.gather(S, list(range(i, i + win_size)))
+        logger.info(x)
+        X.append(x)
         i += hop_size
-    logger.info(X)
+    logger.info(len(X))
     if not X:
-        return tf.empty(S.shape)
+        return tf.Variable([])
     return tf.stack(X)
 
 
