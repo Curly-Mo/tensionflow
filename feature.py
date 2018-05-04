@@ -89,23 +89,41 @@ def split_spec(S, win_size, hop_size):
     return np.stack(X)
 
 
-def split_spec_tf(S, win_size, hop_size, max_len=None):
-    logger.info(S.shape)
-    if max_len:
-        S = tf.reshape(S[0:max_len], tf.TensorShape(max_len).concatenate(S.shape[1:]))
-        logger.info(S.shape)
-    X = []
-    i = 0
-    while i + win_size < S.shape[0]:
-        x = tf.gather(S, list(range(i, i + win_size)))
-        logger.info(x)
-        X.append(x)
-        i += hop_size
-    logger.info(len(X))
-    if not X:
-        return tf.Variable([])
-    return tf.stack(X)
+# TODO: make y optional
+def split_spec_with_labels(S, y, win_size, hop_size):
+    length = tf.shape(S)[0]
+    logger.info(length)
+    X = tf.TensorArray(dtype=S.dtype, infer_shape=False, size=1, dynamic_size=True)
+    Y = tf.TensorArray(dtype=y.dtype, infer_shape=False, size=1, dynamic_size=True)
+    def cond(i, index, X, Y):
+        return tf.less(index+win_size, length)
+    def body(i, index, X, Y):
+        temp = S[index:index+win_size, ...]
+        X = X.write(i, temp)
+        Y = Y.write(i, y)
+        return i + 1, index + hop_size, X, Y
 
+    i, index, X, Y = tf.while_loop(cond, body, [0, 0, X, Y])
+    X = X.stack()
+    X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
+    Y = Y.stack()
+    Y = tf.reshape(Y, [-1] + y.shape[min(1, len(y.shape)-1):].as_list())
+    return X, Y
+
+def split_spec_tf(S, win_size, hop_size):
+    length = tf.shape(S)[0]
+    X = tf.TensorArray(dtype=S.dtype, infer_shape=False, size=1, dynamic_size=True)
+    def cond(i, index, X):
+        return tf.less(index+win_size, length)
+    def body(i, index, X):
+        temp = S[index:index+win_size, ...]
+        X = X.write(i, temp)
+        return i + 1, index + hop_size, X
+
+    i, index, X = tf.while_loop(cond, body, [0, 0, X])
+    X = X.stack()
+    X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
+    return X
 
 def balanced_sample(X_in, Y_in):
     X, Y = [], []

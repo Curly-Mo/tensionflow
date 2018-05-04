@@ -50,7 +50,8 @@ class Dataset(object):
         if preprocessor is None:
             preprocessor = util.identity_func
         logger.info('Determining processed dtypes...')
-        x, y = preprocessor(X[0], Y[0])
+        x1, y1 = (next(iter(i or []), None) for i in (X, Y))
+        x, y = preprocessor(x1, y1)
         x, y = np.asarray(x), np.asarray(y)
         x_dtype = tf.as_dtype(x.dtype)
         y_dtype = tf.as_dtype(y.dtype)
@@ -67,6 +68,8 @@ class Dataset(object):
                     self.errors.append((x,y))
         data_gen = partial(gen, X, Y)
         dataset = tf.data.Dataset.from_generator(data_gen, (x_dtype, y_dtype))
+        # TODO: shuffle before preprocessor
+        #dataset = dataset.shuffle(buffer_size=len(X))
         return dataset
 
     def dump(self, output, splits=None, overwrite=False):
@@ -110,7 +113,7 @@ class Dataset(object):
         x_struct, y_struct = self.meta['data_struct']
         def _parse_function(example):
             sequence_features = {
-                'x': tf.VarLenFeature(dtype=dtypes['features'])
+                'x': tf.FixedLenSequenceFeature(x_struct['shape'][1:], dtype=dtypes['features'])
             }
             context_features = {
                 'y': tf.VarLenFeature(dtype=dtypes['labels']),
@@ -120,12 +123,9 @@ class Dataset(object):
                 context_features,
                 sequence_features
             )
-            features = tf.sparse_tensor_to_dense(sequence['x'],
-                                                 default_value=util.default_of_type(dtypes['features']))
+            features = sequence['x']
             labels = tf.sparse_tensor_to_dense(context['y'],
                                                default_value=util.default_of_type(dtypes['labels']))
-            features = tf.reshape(features, x_struct['shape'])
-            labels = tf.reshape(labels, y_struct['shape'])
             return features, labels
         dataset = tf.data.TFRecordDataset(self.datasetfile(filepath, split))
         dataset = dataset.map(_parse_function)
