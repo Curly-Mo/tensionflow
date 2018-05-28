@@ -13,13 +13,14 @@ import feature
 import datasets
 import util
 import processing
+import model
 
 logger = logging.getLogger(__name__)
 
 # tf.logging._logger.propagate = False
 
 
-class Model(object):
+class BaseModel(model.Model):
     def __init__(self, name='BaseModel', load_from=None):
         self.n_fft = 2048
         self.sr = 11025

@@ -4,6 +4,7 @@ import os
 import shutil
 import pickle
 import tempfile
+import abc
 
 import numpy as np
 import tensorflow as tf
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 # tf.logging._logger.propagate = False
 
 
-class Model(object):
+class Model(abc.ABC):
     def __init__(self, name='BaseModel', load_from=None):
         self.n_fft = 2048
         self.sr = 11025
@@ -30,6 +31,7 @@ class Model(object):
         self.sess = tf.Session()
         self.load(load_from)
 
+    @abc.abstractmethod
     def network(self, features, output_shape, mode):
         # Add channel dimension
         input_layer = tf.expand_dims(features, -1)
@@ -81,6 +83,7 @@ class Model(object):
         logits = tf.layers.dense(inputs=net, units=output_shape)
         return logits
 
+    @abc.abstractmethod
     def estimator_spec(self, logits, labels, mode):
         predictions = {
             'logits': logits,
@@ -125,6 +128,7 @@ class Model(object):
                 eval_metric_ops=eval_metric_ops,
                 export_outputs=export_outputs)
 
+    @abc.abstractmethod
     def metric_ops(self, labels, logits):
         labels = tf.cast(labels, tf.int64)
         logits = tf.nn.sigmoid(logits)
@@ -299,12 +303,14 @@ class Model(object):
                 functools.partial(self.preprocessor), flatten=True)
         ]
 
+    @abc.abstractmethod
     def prepreprocessor(self, x, y=None):
         x = feature.mel_spec(x, n_fft=self.n_fft, sr=self.sr)
         if y:
             return x, y
         return x
 
+    @abc.abstractmethod
     def preprocessor(self, x, y=None):
         if y is not None:
             y = tf.one_hot(y, len(self.metadata['label_dict']), dtype=tf.uint8)

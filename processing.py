@@ -4,7 +4,7 @@ import tensorflow as tf
 import util
 
 logger = logging.getLogger(__name__)
-tf.logging._logger.propagate = False
+# tf.logging._logger.propagate = False
 
 
 class Preprocessor(object):

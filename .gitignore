@@ -102,3 +102,5 @@ ENV/
 
 # custom
 data/
+saved_models/
+dump/

@@ -8,7 +8,6 @@ import datasets
 
 logger = logging.getLogger(__name__)
 
-
 DATA_DIR = '~/datasets/fma'
 
 
@@ -38,21 +37,23 @@ class FmaDataset(datasets.Dataset):
         if 'tracks' in filename:
             tracks = pd.read_csv(filepath, index_col=0, header=[0, 1])
 
-            COLUMNS = [('track', 'tags'), ('album', 'tags'), ('artist', 'tags'),
-                       ('track', 'genres'), ('track', 'genres_all')]
+            COLUMNS = [('track', 'tags'), ('album', 'tags'),
+                       ('artist', 'tags'), ('track', 'genres'), ('track',
+                                                                 'genres_all')]
             for column in COLUMNS:
                 tracks[column] = tracks[column].map(ast.literal_eval)
 
             COLUMNS = [('track', 'date_created'), ('track', 'date_recorded'),
                        ('album', 'date_created'), ('album', 'date_released'),
-                       ('artist', 'date_created'), ('artist', 'active_year_begin'),
-                       ('artist', 'active_year_end')]
+                       ('artist', 'date_created'),
+                       ('artist', 'active_year_begin'), ('artist',
+                                                         'active_year_end')]
             for column in COLUMNS:
                 tracks[column] = pd.to_datetime(tracks[column])
 
             SUBSETS = ('small', 'medium', 'large')
             tracks['set', 'subset'] = tracks['set', 'subset'].astype(
-                    'category', categories=SUBSETS, ordered=True)
+                'category', categories=SUBSETS, ordered=True)
 
             COLUMNS = [('track', 'license'), ('artist', 'bio'),
                        ('album', 'type'), ('album', 'information')]
@@ -76,14 +77,22 @@ class FmaDataset(datasets.Dataset):
         if split == 'all':
             split = ('training', 'test', 'validation')
         else:
-            split = (split,)
+            split = (split, )
         split = tracks['set', 'split'].isin(split)
         # train = tracks['set', 'split'] == 'training'
         # val = tracks['set', 'split'] == 'validation'
         # test = tracks['set', 'split'] == 'test'
-        genres_filepath = os.path.join(self.data_dir, 'fma_metadata/genres.csv')
+        genres_filepath = os.path.join(self.data_dir,
+                                       'fma_metadata/genres.csv')
         genres = self.load_fma_file(genres_filepath)
-        labels = {row[0]: {'index': i, 'name': row[3], 'id': row[0]} for i, row in enumerate(genres.itertuples())}
+        labels = {
+            row[0]: {
+                'index': i,
+                'name': row[3],
+                'id': row[0]
+            }
+            for i, row in enumerate(genres.itertuples())
+        }
 
         Y = tracks.loc[subset & split, ('track', 'genres_all')].values
         y_labels = []
@@ -102,12 +111,20 @@ class FmaDataset(datasets.Dataset):
         # train = tracks['set', 'split'] == 'training'
         # val = tracks['set', 'split'] == 'validation'
         # test = tracks['set', 'split'] == 'test'
-        genres_filepath = os.path.join(self.data_dir, 'fma_metadata/genres.csv')
+        genres_filepath = os.path.join(self.data_dir,
+                                       'fma_metadata/genres.csv')
         genres = self.load_fma_file(genres_filepath)
-        labels = {row[3]: {'index': i, 'name': row[3], 'id': row[0]} for i, row in enumerate(genres.itertuples())}
+        labels = {
+            row[3]: {
+                'index': i,
+                'name': row[3],
+                'id': row[0]
+            }
+            for i, row in enumerate(genres.itertuples())
+        }
 
         Y = tracks.loc[small & split, ('track', 'genre_top')].values
-        Y = [(v,) for v in Y]
+        Y = [(v, ) for v in Y]
         X_ids = tracks.loc[small & split].index.values
         X_files = [self.path_from_id(x) for x in X_ids]
         return X_files, Y, labels
