@@ -9,11 +9,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import predictor
 
-import feature
-import datasets
-import util
-import processing
-import model
+from tensionflow import feature
+from tensionflow import datasets
+from tensionflow import util
+from tensionflow import processing
+from tensionflow import model
 
 logger = logging.getLogger(__name__)
 

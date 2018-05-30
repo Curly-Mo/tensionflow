@@ -4,7 +4,7 @@ import os
 
 import pandas as pd
 
-import datasets
+from tensionflow import datasets
 
 logger = logging.getLogger(__name__)
 

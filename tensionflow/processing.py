@@ -1,7 +1,8 @@
 import logging
 
 import tensorflow as tf
-import util
+
+from tensionflow import util
 
 logger = logging.getLogger(__name__)
 # tf.logging._logger.propagate = False

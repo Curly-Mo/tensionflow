@@ -9,7 +9,7 @@ import itertools
 import numpy as np
 import tensorflow as tf
 
-import util
+from tensionflow import util
 
 logger = logging.getLogger(__name__)
 

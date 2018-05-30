@@ -1,0 +1,3 @@
+#!/bin/sh
+logdir=$(ls -t -1 -d /tmp/tensionflow.* | head -n1)
+tensorboard --logdir=$logdir
