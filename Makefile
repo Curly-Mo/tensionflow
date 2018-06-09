@@ -1,4 +1,4 @@
-.PHONY: init
+.PHONY: install-dev
 
-init:
-	pip install -r requirements.txt
+install-dev:
+	pip install -e .[dev]
