@@ -42,7 +42,7 @@ def flatmap(func, iterable):
     for item in iterable:
         try:
             yield func(item)
-        except:
+        except:  # noqa: E722
             print(f'Unable to {func} {item}')
             pass
 
@@ -92,11 +92,14 @@ def split_spec(S, win_size, hop_size):
 def split_spec_tf(S, win_size, hop_size, label=None):
     length = tf.shape(S)[0]
     logger.info(length)
-    X = tf.TensorArray(dtype=S.dtype, infer_shape=False, size=1, dynamic_size=True)
+    X = tf.TensorArray(
+        dtype=S.dtype, infer_shape=False, size=1, dynamic_size=True)
+
     def cond(i, index, X, Y=None):
-        return tf.less(index+win_size, length)
+        return tf.less(index + win_size, length)
+
     def body(i, index, X, Y=None):
-        temp = S[index:index+win_size, ...]
+        temp = S[index:index + win_size, ...]
         X = X.write(i, temp)
         if label is not None:
             Y = Y.write(i, label)
@@ -104,10 +107,13 @@ def split_spec_tf(S, win_size, hop_size, label=None):
         return i + 1, index + hop_size, X
 
     if label is not None:
-        Y = tf.TensorArray(dtype=label.dtype, infer_shape=False, size=1, dynamic_size=True)
+        Y = tf.TensorArray(
+            dtype=label.dtype, infer_shape=False, size=1, dynamic_size=True)
         i, index, X, Y = tf.while_loop(cond, body, [0, 0, X, Y])
         Y = Y.stack()
-        Y = tf.reshape(Y, [-1] + label.shape[min(1, len(label.shape)-1):].as_list())
+        Y = tf.reshape(
+            Y, [-1] + label.shape[min(1,
+                                      len(label.shape) - 1):].as_list())
         X = X.stack()
         X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
         return X, Y

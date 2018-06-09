@@ -7,7 +7,7 @@ import tempfile
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import predictor
+# from tensorflow.contrib import predictor
 
 from tensionflow import feature
 from tensionflow import datasets

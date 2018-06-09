@@ -16,11 +16,11 @@ def default_of_type(type=int):
         return 'default_value'
     try:
         return type()
-    except:
+    except:  # noqa: E722
         pass
     try:
         return type.as_numpy_dtype()
-    except:
+    except:  # noqa: E722
         pass
     return 0
 
