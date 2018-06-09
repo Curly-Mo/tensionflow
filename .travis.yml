@@ -1,6 +1,6 @@
 language: python
 python:
-  - '3.5'
+  # - '3.5' # old flake8 not respecting noqa
   - '3.6'
   - '3.6-dev'
   # - '3.7-dev'
