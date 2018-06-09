@@ -1,13 +1,11 @@
 language: python
 python:
-  - "3.3"
-  - "3.4"
-  - "3.5"
-  - "3.6"
-  - "3.7"
-  - "pypy3.5"
-  - "pypy3.6"
-  - "pypy3.7"
+  - '3.4'
+  - '3.5'
+  - '3.6'
+  - '3.6-dev'
+  - '3.7-dev'
+  # - 'pypy3.6'
 install:
   - pip install .
   - pip install -r requirements.txt

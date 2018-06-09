@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/Curly-Mo/tensionflow',
     packages=setuptools.find_packages(),
-    python_requires='>=3.5',
+    python_requires='>=3.4',
     classifiers=(
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
@@ -26,4 +26,14 @@ setuptools.setup(
         'pandas ~= 0.23.0',
         'tensorflow ~= 1.8.0',
     ],
+    extras_require={
+        'test': [
+            'tox>=3.0.0',
+            'python-coveralls>=2.9.1',
+            'pytest>=3.6.1',
+            'pytest-cov>=2.5.1',
+            'codecov>=2.0.15',
+            'flake8>=3.5.0',
+        ],
+    }
 )
