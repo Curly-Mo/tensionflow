@@ -28,10 +28,10 @@ setuptools.setup(
     ],
     extras_require={
         'test': [
-            'tox>=3.0.0',
-            'python-coveralls>=2.9.1',
+            # 'tox>=3.0.0',
             'pytest>=3.6.1',
             'pytest-cov>=2.5.1',
+            'python-coveralls>=2.9.1',
             'codecov>=2.0.15',
             'flake8>=3.5.0',
         ],
