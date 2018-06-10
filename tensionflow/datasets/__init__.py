@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class Dataset(object):
     def __init__(self,
                  filepath=None,
-                 splits=['training', 'test', 'validation'],
+                 splits=('training', 'test', 'validation'),
                  preprocessor=None,
                  indexify_labels=True):
         self.meta = {}
@@ -71,8 +71,8 @@ class Dataset(object):
                             data, self.meta['data_struct']))
                     yield data
                 except Exception as e:
-                    logger.warn(f'Error preprocessing value: {x}')
-                    logger.warn(e)
+                    logger.warning(f'Error preprocessing value: {x}')
+                    logger.warning(e)
                     self.errors.append((x, y))
 
         data_gen = partial(gen, X, Y)
@@ -120,15 +120,14 @@ class Dataset(object):
         with open(filename, 'wb') as handle:
             pickle.dump(self.meta, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def load(self,
-             filepath,
-             split='training',
-             dtypes={
-                 'labels': tf.int64,
-                 'features': tf.float32
-             }):
+    def load(self, filepath, split='training', dtypes=None):
         """Load a dataset from a tfrecord"""
-        x_struct, y_struct = self.meta['data_struct']
+        if dtypes is None:
+            dtypes = {
+                'labels': tf.int64,
+                'features': tf.float32
+            }
+        x_struct, _ = self.meta['data_struct']
 
         def _parse_function(example):
             sequence_features = {
@@ -164,7 +163,7 @@ def parse_data_structure(array, prev_struct=None):
     shape = min_shape = max_shape = array.shape
     if prev_struct:
         if prev_struct['dtype'] != dtype:
-            logger.warn(
+            logger.warning(
                 f'dtype {dtype} does not match previous dtype: {prev_struct["dtype"]}'
             )
 

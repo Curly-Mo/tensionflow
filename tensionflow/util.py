@@ -1,8 +1,8 @@
+import collections
+import logging
 import tensorflow as tf
 import numpy as np
 from bidict import bidict
-import collections
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -11,16 +11,16 @@ def identity_func(*args):
     return args
 
 
-def default_of_type(type=int):
-    if type == tf.string:
+def default_of_type(dtype=int):
+    if dtype == tf.string:
         return 'default_value'
     try:
-        return type()
-    except:  # noqa: E722
+        return dtype()
+    except:  # noqa: E722  # pylint: disable=bare-except
         pass
     try:
-        return type.as_numpy_dtype()
-    except:  # noqa: E722
+        return dtype.as_numpy_dtype()
+    except:  # noqa: E722  # pylint: disable=bare-except
         pass
     return 0
 
@@ -35,8 +35,11 @@ def indexify(labels, label_dict=None):
                 for label in y:
                     distinct.add(label)
         distinct = sorted(distinct)
-        label_dict = bidict((label, index) for index, label in enumerate(distinct))
-    logger.info(f'Converting labels to index range: [{min(label_dict.values())}-{max(label_dict.values())}]')
+        label_dict = bidict(
+            (label, index) for index, label in enumerate(distinct))
+    logger.info(
+        f'Converting labels to index range: [{min(label_dict.values())}-{max(label_dict.values())}]'
+    )
     y = [map_if_collection(label_dict.get, label) for label in labels]
     return y, label_dict
 
@@ -55,11 +58,12 @@ def one_hot(index_labels, num_labels):
 
 
 def one_hot_to_some_hot(Y):
-    return Y/Y.sum(axis=1, keepdims=True)
+    return Y / Y.sum(axis=1, keepdims=True)
 
 
 def map_if_collection(func, obj):
-    if not isinstance(obj, (str, bytes)) and isinstance(obj, collections.Iterable):
+    if not isinstance(obj,
+                      (str, bytes)) and isinstance(obj, collections.Iterable):
         return tuple(map(func, obj))
     else:
         return func(obj)
@@ -82,4 +86,5 @@ def _dtype_feature(ndarray):
 def wrap_tf_py_func(py_func, Tout):
     def f(*args):
         return tf.py_func(py_func, inp=args, Tout=Tout)
+
     return f

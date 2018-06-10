@@ -62,11 +62,11 @@ class FmaDataset(datasets.Dataset):
 
             return tracks
 
-    def path_from_id(self, id):
+    def path_from_id(self, track_id):
         prefix = os.path.join(self.data_dir, f'fma_{self.size}')
         prefix = os.path.expanduser(prefix)
-        id = str(id).zfill(6)
-        return os.path.join(prefix, id[0:3], id + '.mp3')
+        track_id = str(track_id).zfill(6)
+        return os.path.join(prefix, track_id[0:3], track_id + '.mp3')
 
     def get_dataset(self, split='training', size='small'):
         logger.info(f'Loading dataset split={split}, size={size}')
@@ -102,12 +102,12 @@ class FmaDataset(datasets.Dataset):
         X_files = [self.path_from_id(x) for x in X_ids]
         return X_files, y_labels, labels
 
-    def get_dataset_single_genre(self, type='training'):
+    def get_dataset_single_genre(self, split='training'):
         filepath = os.path.join(self.data_dir, 'fma_metadata/tracks.csv')
         tracks = self.load_fma_file(filepath)
 
         small = tracks['set', 'subset'] <= 'small'
-        split = tracks['set', 'split'] == type
+        split = tracks['set', 'split'] == split
         # train = tracks['set', 'split'] == 'training'
         # val = tracks['set', 'split'] == 'validation'
         # test = tracks['set', 'split'] == 'test'
