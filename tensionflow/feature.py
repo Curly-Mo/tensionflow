@@ -42,9 +42,8 @@ def flatmap(func, iterable):
     for item in iterable:
         try:
             yield func(item)
-        except:  # noqa: E722
+        except:  # noqa: E722  # pylint: disable=bare-except
             print(f'Unable to {func} {item}')
-            pass
 
 
 def training_features(x_files, y_labels):
@@ -71,7 +70,7 @@ def training_features(x_files, y_labels):
 
 def mel_spec(audio_path, n_fft=2048, sr=11025):
     y, sr = librosa.load(audio_path, mono=True, sr=sr)
-    y, index = librosa.effects.trim(y)
+    y, _ = librosa.effects.trim(y)
     melspec = librosa.feature.melspectrogram(y, n_fft=n_fft)
     melspec = np.float32(melspec)
     return melspec.T
@@ -95,7 +94,7 @@ def split_spec_tf(S, win_size, hop_size, label=None):
     X = tf.TensorArray(
         dtype=S.dtype, infer_shape=False, size=1, dynamic_size=True)
 
-    def cond(i, index, X, Y=None):
+    def cond(i, index, X, Y=None):  # pylint: disable=unused-argument
         return tf.less(index + win_size, length)
 
     def body(i, index, X, Y=None):
@@ -109,7 +108,7 @@ def split_spec_tf(S, win_size, hop_size, label=None):
     if label is not None:
         Y = tf.TensorArray(
             dtype=label.dtype, infer_shape=False, size=1, dynamic_size=True)
-        i, index, X, Y = tf.while_loop(cond, body, [0, 0, X, Y])
+        _, _, X, Y = tf.while_loop(cond, body, [0, 0, X, Y])
         Y = Y.stack()
         Y = tf.reshape(
             Y, [-1] + label.shape[min(1,
@@ -118,7 +117,7 @@ def split_spec_tf(S, win_size, hop_size, label=None):
         X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
         return X, Y
     else:
-        i, index, X = tf.while_loop(cond, body, [0, 0, X])
+        _, _, X = tf.while_loop(cond, body, [0, 0, X])
         X = X.stack()
         X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
         return X

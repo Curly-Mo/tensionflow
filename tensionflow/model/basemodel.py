@@ -13,23 +13,24 @@ from tensionflow import feature
 from tensionflow import datasets
 from tensionflow import util
 from tensionflow import processing
-from tensionflow import model
+from tensionflow import base
 
 logger = logging.getLogger(__name__)
 
 # tf.logging._logger.propagate = False
 
 
-class BaseModel(model.Model):
-    def __init__(self, name='BaseModel', load_from=None):
+class BaseModel(base.Model):
+    def __init__(self, name='BaseModel', *args, **kwargs):
         self.n_fft = 2048
         self.sr = 11025
         self.win_size = 64
         self.hop_size = self.win_size * 15 // 16
         self.learning_rate = 0.001
         self.name = name
-        self.sess = tf.Session()
-        self.load(load_from)
+        self.metadata = {}
+        self.estimator = None
+        super().__init__(*args, **kwargs)
 
     def network(self, features, output_shape, mode):
         # Add channel dimension
@@ -169,9 +170,9 @@ class BaseModel(model.Model):
 
     def input_fn(self,
                  dataset,
-                 preprocessors=[],
+                 preprocessors=(),
                  batch_size=5,
-                 n_epoch=1,
+                 n_epoch=None,
                  buffer_size=10000):
         def f():
             ds = dataset
@@ -180,7 +181,7 @@ class BaseModel(model.Model):
                 ds = preprocessor.apply(ds)
             ds = ds.shuffle(buffer_size=buffer_size)
             ds = ds.batch(batch_size)
-            # ds = ds.repeat(n_epoch)
+            ds = ds.repeat(n_epoch)
             iterator = ds.make_one_shot_iterator().get_next()
             print(iterator)
             return iterator
@@ -233,7 +234,7 @@ class BaseModel(model.Model):
                 if os.path.exists(output_dir) and output_dir != dst:
                     shutil.rmtree(output_dir)
             shutil.copytree(self.estimator.model_dir, dst)
-        except OSError as e:
+        except OSError as _:
             logger.error(f'Directory already exists: {dst}. (use force=True)')
         with open(self.metafile(dst), 'wb') as handle:
             pickle.dump(
@@ -320,7 +321,7 @@ class BaseModel(model.Model):
             X = feature.split_spec(
                 x, win_size=self.win_size, hop_size=self.hop_size)
             if y is not None:
-                y = sum(np.eye(len(self.label_dict))[y])
+                y = sum(np.eye(len(self.metadata['label_dict']))[y])
                 Y = []
                 for _ in range(len(X)):
                     Y.append(y)
