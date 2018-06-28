@@ -27,7 +27,7 @@ class NSynth(datasets.Dataset):
     @property
     def split_dirs(self):
         return {
-            'train':  os.path.join(self.data_dir, TRAIN_DIR),
+            'train': os.path.join(self.data_dir, TRAIN_DIR),
             'test': os.path.join(self.data_dir, TEST_DIR),
             'validation': os.path.join(self.data_dir, VALID_DIR),
         }

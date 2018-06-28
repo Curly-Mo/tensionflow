@@ -35,11 +35,8 @@ def indexify(labels, label_dict=None):
                 for label in y:
                     distinct.add(label)
         distinct = sorted(distinct)
-        label_dict = bidict(
-            (label, index) for index, label in enumerate(distinct))
-    logger.info(
-        f'Converting labels to index range: [{min(label_dict.values())}-{max(label_dict.values())}]'
-    )
+        label_dict = bidict((label, index) for index, label in enumerate(distinct))
+    logger.info(f'Converting labels to index range: [{min(label_dict.values())}-{max(label_dict.values())}]')
     y = [map_if_collection(label_dict.get, label) for label in labels]
     return y, label_dict
 
@@ -62,8 +59,7 @@ def one_hot_to_some_hot(Y):
 
 
 def map_if_collection(func, obj):
-    if not isinstance(obj,
-                      (str, bytes)) and isinstance(obj, collections.Iterable):
+    if not isinstance(obj, (str, bytes)) and isinstance(obj, collections.Iterable):
         return tuple(map(func, obj))
     else:
         return func(obj)
