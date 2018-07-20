@@ -16,11 +16,11 @@ def default_of_type(dtype=int):
         return 'default_value'
     try:
         return dtype()
-    except:  # noqa: E722  # pylint: disable=bare-except
+    except TypeError:
         pass
     try:
         return dtype.as_numpy_dtype()
-    except:  # noqa: E722  # pylint: disable=bare-except
+    except (AttributeError, TypeError):
         pass
     return 0
 
@@ -36,7 +36,11 @@ def indexify(labels, label_dict=None):
                     distinct.add(label)
         distinct = sorted(distinct)
         label_dict = bidict((label, index) for index, label in enumerate(distinct))
-    logger.info(f'Converting labels to index range: [{min(label_dict.values())}-{max(label_dict.values())}]')
+    logger.info(
+        'Converting labels to index range: [%s-%s]',
+        min(label_dict.values()),
+        max(label_dict.values()),
+    )
     y = [map_if_collection(label_dict.get, label) for label in labels]
     return y, label_dict
 
@@ -68,7 +72,7 @@ def map_if_collection(func, obj):
 def _dtype_feature(ndarray):
     """match appropriate tf.train.Feature class with dtype of ndarray. """
     if not isinstance(ndarray, np.ndarray):
-        logger.info(f'Converting {ndarray} to ndarray')
+        logger.info('Converting %s to ndarray', ndarray)
         ndarray = np.array([ndarray])
     dtype = ndarray.dtype
     if np.issubdtype(dtype, np.float):

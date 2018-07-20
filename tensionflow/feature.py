@@ -42,7 +42,7 @@ def flatmap(func, iterable):
     for item in iterable:
         try:
             yield func(item)
-        except:  # noqa: E722  # pylint: disable=bare-except
+        except:  # noqa pylint: disable=bare-except
             print(f'Unable to {func} {item}')
 
 

@@ -3,7 +3,7 @@ import logging
 from functools import partial
 import pathlib
 import os
-import pickle
+import pickle  # nosec
 import itertools
 
 import numpy as np
@@ -14,18 +14,22 @@ from tensionflow import util
 logger = logging.getLogger(__name__)
 
 
-class Dataset(object):
+class Dataset:
     def __init__(
-        self, filepath=None, splits=('training', 'test', 'validation'), preprocessor=None, indexify_labels=True
+        self,
+        filepath=None,
+        splits=('training', 'test', 'validation'),
+        preprocessor=None,
+        indexify_labels=True,
     ):
         self.meta = {}
         self.splits = {}
         self.meta['data_struct'] = tuple()
         self.errors = []
         if filepath:
-            logger.info(f'Loading {splits} datasets from {filepath}')
+            logger.info('Loading %s datasets from %s', splits, filepath)
             with open(self.metafile(filepath), 'rb') as handle:
-                self.meta = pickle.load(handle)
+                self.meta = pickle.load(handle)  # nosec
             for split in splits:
                 self.splits[split] = self.load(filepath, split)
         else:
@@ -57,7 +61,7 @@ class Dataset(object):
         x, y = np.asarray(x), np.asarray(y)
         x_dtype = tf.as_dtype(x.dtype)
         y_dtype = tf.as_dtype(y.dtype)
-        logger.info(f'Preprocess dtypes: {(x_dtype, y_dtype)}')
+        logger.info('Preprocess dtypes: %s', (x_dtype, y_dtype))
 
         def gen(X, Y):
             for x, y in zip(X, Y):
@@ -65,11 +69,13 @@ class Dataset(object):
                     data = preprocessor(x, y)
                     self.meta['data_struct'] = tuple(
                         parse_data_structure(new, old)
-                        for new, old in itertools.zip_longest(data, self.meta['data_struct'])
+                        for new, old in itertools.zip_longest(
+                            data, self.meta['data_struct']
+                        )
                     )
                     yield data
                 except Exception as e:
-                    logger.warning(f'Error preprocessing value: {x}')
+                    logger.warning('Error preprocessing value: %s', x)
                     logger.warning(e)
                     self.errors.append((x, y))
 
@@ -86,7 +92,7 @@ class Dataset(object):
             splits = [key for key in self.splits]
         for split in splits:
             filename = self.datasetfile(output, split)
-            logger.info(f"Saving split '{split}' to {filename}")
+            logger.info("Saving split '%s' to %s", split, filename)
             dataset = self.splits[split]
             with tf.Session() as sess, tf.python_io.TFRecordWriter(filename) as writer:
                 next_element = dataset.make_one_shot_iterator().get_next()
@@ -98,20 +104,18 @@ class Dataset(object):
                             features = [features]
                         feature_list = {
                             'feature_list': {
-                                'x': tf.train.FeatureList(feature=features),
+                                'x': tf.train.FeatureList(feature=features)
                             }
                         }
-                        context = {
-                            'feature': {
-                                'y': util._dtype_feature(y),
-                            },
-                        }
-                        example = tf.train.SequenceExample(feature_lists=feature_list, context=context)
+                        context = {'feature': {'y': util._dtype_feature(y)}}
+                        example = tf.train.SequenceExample(
+                            feature_lists=feature_list, context=context
+                        )
                         writer.write(example.SerializeToString())
                     except tf.errors.OutOfRangeError:
                         break
         filename = self.metafile(output)
-        logger.info(f"Saving metadata to {self.metafile(output)}")
+        logger.info('Saving metadata to %s', self.metafile(output))
         with open(filename, 'wb') as handle:
             pickle.dump(self.meta, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -122,13 +126,19 @@ class Dataset(object):
         x_struct, _ = self.meta['data_struct']
 
         def _parse_function(example):
-            sequence_features = {'x': tf.FixedLenSequenceFeature(x_struct['shape'][1:], dtype=dtypes['features'])}
-            context_features = {
-                'y': tf.VarLenFeature(dtype=dtypes['labels']),
+            sequence_features = {
+                'x': tf.FixedLenSequenceFeature(
+                    x_struct['shape'][1:], dtype=dtypes['features']
+                )
             }
-            context, sequence = tf.parse_single_sequence_example(example, context_features, sequence_features)
+            context_features = {'y': tf.VarLenFeature(dtype=dtypes['labels'])}
+            context, sequence = tf.parse_single_sequence_example(
+                example, context_features, sequence_features
+            )
             features = sequence['x']
-            labels = tf.sparse_tensor_to_dense(context['y'], default_value=util.default_of_type(dtypes['labels']))
+            labels = tf.sparse_tensor_to_dense(
+                context['y'], default_value=util.default_of_type(dtypes['labels'])
+            )
             return features, labels
 
         dataset = tf.data.TFRecordDataset(self.datasetfile(filepath, split))
@@ -148,11 +158,19 @@ def parse_data_structure(array, prev_struct=None):
     shape = min_shape = max_shape = array.shape
     if prev_struct:
         if prev_struct['dtype'] != dtype:
-            logger.warning(f'dtype {dtype} does not match previous dtype: {prev_struct["dtype"]}')
+            logger.warning(
+                'dtype %s does not match previous dtype: %s',
+                dtype,
+                prev_struct["dtype"],
+            )
 
         def new_shape(shape, prev_shape):
             if len(shape) != len(prev_shape):
-                logger.error(f'data shape {shape} incompatible with previous data shape: {prev_shape}')
+                logger.error(
+                    'data shape %s incompatible with previous data shape: %s',
+                    shape,
+                    prev_shape,
+                )
             for new, old in zip(shape, prev_shape):
                 if new == old:
                     yield new
@@ -164,4 +182,9 @@ def parse_data_structure(array, prev_struct=None):
             min_shape = prev_struct['min_shape']
         if sum(max_shape) < sum(prev_struct['max_shape']):
             max_shape = prev_struct['max_shape']
-    return {'dtype': dtype, 'shape': shape, 'min_shape': min_shape, 'max_shape': max_shape}
+    return {
+        'dtype': dtype,
+        'shape': shape,
+        'min_shape': min_shape,
+        'max_shape': max_shape,
+    }
