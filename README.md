@@ -11,7 +11,7 @@ A Tensorflow framework for working with audio data.
 
 ## Features
 
-* What it do?
+* TODO
 
 ## Usage
 
@@ -40,14 +40,14 @@ poetry run tensionflow --help
 
 ### Tests
 ```console
-poetry run pytest --cov=tensionflow
+poetry run tox
 ```
 
 ### Docker
 To run with docker
 ```console
-docker build -t Tensionflow.image .
-docker run tensionflow.image tensionflow --help
+docker build -t tensionflow .
+docker run tensionflow:latest tensionflow --help
 ```
 
 ## License
