@@ -14,6 +14,7 @@
 #
 import os
 import sys
+from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('..'))
 
 
@@ -183,3 +184,13 @@ todo_include_todos = True
 apidoc_module_dir = '../' + project_slug
 apidoc_excluded_paths = ['tests']
 apidoc_separate_modules = True
+
+# -- mock deps that depend on C binaries for readthedocs --------------------
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+
+MOCK_MODULES = ['tensorflow', 'numpy', 'pandas', 'librosa']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)

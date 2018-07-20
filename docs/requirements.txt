@@ -6,9 +6,5 @@ sphinx
 sphinx-rtd-theme
 sphinxcontrib-apidoc
 click
-numpy
-tensorflow
 bidict
 click
-librosa
-pandas
