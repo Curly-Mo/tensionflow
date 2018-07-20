@@ -16,11 +16,11 @@ def default_of_type(dtype=int):
         return 'default_value'
     try:
         return dtype()
-    except:  # noqa pylint: disable=bare-except
+    except TypeError:
         pass
     try:
         return dtype.as_numpy_dtype()
-    except:  # noqa pylint: disable=bare-except
+    except (AttributeError, TypeError):
         pass
     return 0
 

@@ -3,7 +3,7 @@ import logging
 from functools import partial
 import pathlib
 import os
-import pickle
+import pickle  # nosec
 import itertools
 
 import numpy as np
@@ -29,7 +29,7 @@ class Dataset:
         if filepath:
             logger.info('Loading %s datasets from %s', splits, filepath)
             with open(self.metafile(filepath), 'rb') as handle:
-                self.meta = pickle.load(handle)
+                self.meta = pickle.load(handle)  # nosec
             for split in splits:
                 self.splits[split] = self.load(filepath, split)
         else:
