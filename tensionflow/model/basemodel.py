@@ -13,7 +13,7 @@ from tensionflow import feature
 from tensionflow import datasets
 from tensionflow import util
 from tensionflow import processing
-from tensionflow import base
+from tensionflow.model import base
 
 logger = logging.getLogger(__name__)
 
