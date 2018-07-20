@@ -11,7 +11,7 @@ VALID_DIR = 'nsynth-valid'
 
 
 class NSynth(datasets.Dataset):
-    def __init__(self, data_dir=os.path.expanduser('~/datasets/nsynth'), *args, **kwargs):
+    def __init__(self, *args, data_dir=os.path.expanduser('~/datasets/nsynth'), **kwargs):
         self.data_dir = data_dir
         super().__init__(*args, **kwargs)
 

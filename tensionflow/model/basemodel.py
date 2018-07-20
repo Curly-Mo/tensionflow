@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseModel(base.Model):
-    def __init__(self, name='BaseModel', *args, **kwargs):
+    def __init__(self, *args, name='BaseModel', **kwargs):
         self.n_fft = 2048
         self.sr = 11025
         self.win_size = 64
@@ -37,12 +37,12 @@ class BaseModel(base.Model):
         input_layer = tf.expand_dims(features, -1)
         # input_layer = tf.expand_dims(features['features'], -1)
         height = input_layer.shape[-2]
-        logger.info(f'height: {height}')
+        logger.info('height: %s', height)
         # feature_columns = [tf.feature_column.numeric_column('features', dtype=tf.float32)]
         # input_layer = tf.feature_column.input_layer(features=features, feature_columns=feature_columns)
         # input_layer = tf.contrib.feature_column.sequence_input_layer(
         #     features=features, feature_columns=feature_columns)
-        logger.info(f'input_layer: {input_layer}')
+        logger.info('input_layer: %s', input_layer)
         net = tf.layers.conv2d(
             inputs=input_layer, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
         )
@@ -86,9 +86,10 @@ class BaseModel(base.Model):
         if mode == tf.estimator.ModeKeys.PREDICT:
             return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions, export_outputs=export_outputs)
 
-        logger.info(f'logits shape: {logits.shape}')
-        logger.info(f'labels shape: {labels.shape}')
-        loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=logits)
+        logger.info('logits shape: %s', logits.shape)
+        logger.info('labels shape: %s', labels.shape)
+        loss = tf.losses.sigmoid_cross_entropy(
+            multi_class_labels=labels, logits=logits)
         if mode == tf.estimator.ModeKeys.TRAIN:
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
@@ -97,8 +98,11 @@ class BaseModel(base.Model):
         if mode == tf.estimator.ModeKeys.EVAL:
             eval_metric_ops = self.metric_ops(labels, logits)
             return tf.estimator.EstimatorSpec(
-                mode=mode, loss=loss, eval_metric_ops=eval_metric_ops, export_outputs=export_outputs
-            )
+                mode=mode,
+                loss=loss,
+                eval_metric_ops=eval_metric_ops,
+                export_outputs=export_outputs)
+        return None
 
     def metric_ops(self, labels, logits):
         labels = tf.cast(labels, tf.int64)
@@ -190,13 +194,13 @@ class BaseModel(base.Model):
     def save(self, output_dir='saved_models', force=False):
         dst = os.path.join(output_dir, self.name)
         try:
-            logger.info(f'Copying {self.estimator.model_dir} to {dst}')
+            logger.info('Copying %s, to %s', self.estimator.model_dir, dst)
             if force:
                 if os.path.exists(output_dir) and output_dir != dst:
                     shutil.rmtree(output_dir)
             shutil.copytree(self.estimator.model_dir, dst)
         except OSError as _:
-            logger.error(f'Directory already exists: {dst}. (use force=True)')
+            logger.error('Directory already exists: %s. (use force=True)', dst)
         with open(self.metafile(dst), 'wb') as handle:
             pickle.dump(self.metadata, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -226,11 +230,11 @@ class BaseModel(base.Model):
     def load(self, saved_path=None):
         model_dir = tempfile.mkdtemp(prefix='tensionflow.')
         if saved_path:
-            logger.info(f'Loading metadata from {self.metafile(saved_path)}')
+            logger.info('Loading metadata from %s', self.metafile(saved_path))
             with open(self.metafile(saved_path), 'rb') as handle:
                 self.metadata = pickle.load(handle)
             os.rmdir(model_dir)
-            logger.info(f'Copying {saved_path} to {model_dir}')
+            logger.info('Copying %s to %s', saved_path, model_dir)
             shutil.copytree(saved_path, model_dir)
         self.estimator = tf.estimator.Estimator(model_fn=self.model_fn(), model_dir=model_dir)
 

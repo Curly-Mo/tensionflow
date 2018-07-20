@@ -12,7 +12,7 @@ DATA_DIR = '~/datasets/fma'
 
 
 class FmaDataset(datasets.Dataset):
-    def __init__(self, size='small', data_dir=DATA_DIR, *args, **kwargs):
+    def __init__(self, *args, size='small', data_dir=DATA_DIR, **kwargs):
         self.data_dir = data_dir
         self.size = size
         super().__init__(*args, **kwargs)
@@ -22,7 +22,7 @@ class FmaDataset(datasets.Dataset):
         return X, Y
 
     def load_fma_file(self, filepath):
-        logger.info(f'Loading track metadata from {filepath}')
+        logger.info('Loading track metadata from %s', filepath)
         filename = os.path.basename(filepath)
 
         if 'features' in filename:
@@ -59,6 +59,7 @@ class FmaDataset(datasets.Dataset):
                 tracks[column] = tracks[column].astype('category')
 
             return tracks
+        return None
 
     def path_from_id(self, track_id):
         prefix = os.path.join(self.data_dir, f'fma_{self.size}')
@@ -67,7 +68,7 @@ class FmaDataset(datasets.Dataset):
         return os.path.join(prefix, track_id[0:3], track_id + '.mp3')
 
     def get_dataset(self, split='training', size='small'):
-        logger.info(f'Loading dataset split={split}, size={size}')
+        logger.info('Loading dataset split=%s, size=%s', split, size)
         filepath = os.path.join(self.data_dir, 'fma_metadata/tracks.csv')
         tracks = self.load_fma_file(filepath)
 
