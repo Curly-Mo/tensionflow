@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # tf.logging._logger.propagate = False
 
 
-class Preprocessor():
+class Preprocessor:
     def __init__(self, func, flatten=False):
         self.func = func
         self.flatten = flatten

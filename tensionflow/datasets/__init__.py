@@ -16,11 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Dataset:
     def __init__(
-        self,
-        filepath=None,
-        splits=('training', 'test', 'validation'),
-        preprocessor=None,
-        indexify_labels=True,
+        self, filepath=None, splits=('training', 'test', 'validation'), preprocessor=None, indexify_labels=True
     ):
         self.meta = {}
         self.splits = {}
@@ -69,9 +65,7 @@ class Dataset:
                     data = preprocessor(x, y)
                     self.meta['data_struct'] = tuple(
                         parse_data_structure(new, old)
-                        for new, old in itertools.zip_longest(
-                            data, self.meta['data_struct']
-                        )
+                        for new, old in itertools.zip_longest(data, self.meta['data_struct'])
                     )
                     yield data
                 except Exception as e:
@@ -102,15 +96,9 @@ class Dataset:
                         features = util.map_if_collection(util._dtype_feature, x)
                         if not isinstance(features, collections.Iterable):
                             features = [features]
-                        feature_list = {
-                            'feature_list': {
-                                'x': tf.train.FeatureList(feature=features)
-                            }
-                        }
+                        feature_list = {'feature_list': {'x': tf.train.FeatureList(feature=features)}}
                         context = {'feature': {'y': util._dtype_feature(y)}}
-                        example = tf.train.SequenceExample(
-                            feature_lists=feature_list, context=context
-                        )
+                        example = tf.train.SequenceExample(feature_lists=feature_list, context=context)
                         writer.write(example.SerializeToString())
                     except tf.errors.OutOfRangeError:
                         break
@@ -126,19 +114,11 @@ class Dataset:
         x_struct, _ = self.meta['data_struct']
 
         def _parse_function(example):
-            sequence_features = {
-                'x': tf.FixedLenSequenceFeature(
-                    x_struct['shape'][1:], dtype=dtypes['features']
-                )
-            }
+            sequence_features = {'x': tf.FixedLenSequenceFeature(x_struct['shape'][1:], dtype=dtypes['features'])}
             context_features = {'y': tf.VarLenFeature(dtype=dtypes['labels'])}
-            context, sequence = tf.parse_single_sequence_example(
-                example, context_features, sequence_features
-            )
+            context, sequence = tf.parse_single_sequence_example(example, context_features, sequence_features)
             features = sequence['x']
-            labels = tf.sparse_tensor_to_dense(
-                context['y'], default_value=util.default_of_type(dtypes['labels'])
-            )
+            labels = tf.sparse_tensor_to_dense(context['y'], default_value=util.default_of_type(dtypes['labels']))
             return features, labels
 
         dataset = tf.data.TFRecordDataset(self.datasetfile(filepath, split))
@@ -158,19 +138,11 @@ def parse_data_structure(array, prev_struct=None):
     shape = min_shape = max_shape = array.shape
     if prev_struct:
         if prev_struct['dtype'] != dtype:
-            logger.warning(
-                'dtype %s does not match previous dtype: %s',
-                dtype,
-                prev_struct["dtype"],
-            )
+            logger.warning('dtype %s does not match previous dtype: %s', dtype, prev_struct["dtype"])
 
         def new_shape(shape, prev_shape):
             if len(shape) != len(prev_shape):
-                logger.error(
-                    'data shape %s incompatible with previous data shape: %s',
-                    shape,
-                    prev_shape,
-                )
+                logger.error('data shape %s incompatible with previous data shape: %s', shape, prev_shape)
             for new, old in zip(shape, prev_shape):
                 if new == old:
                     yield new
@@ -182,9 +154,4 @@ def parse_data_structure(array, prev_struct=None):
             min_shape = prev_struct['min_shape']
         if sum(max_shape) < sum(prev_struct['max_shape']):
             max_shape = prev_struct['max_shape']
-    return {
-        'dtype': dtype,
-        'shape': shape,
-        'min_shape': min_shape,
-        'max_shape': max_shape,
-    }
+    return {'dtype': dtype, 'shape': shape, 'min_shape': min_shape, 'max_shape': max_shape}

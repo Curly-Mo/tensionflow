@@ -1,9 +1,9 @@
-FROM python:3.6
+FROM python:3.6-slim
 
 MAINTAINER Colin Fahy <colin@cfahy.com>
 
 # install poetry
-RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
+RUN pip install poetry
 
 # create application directory
 RUN mkdir /app

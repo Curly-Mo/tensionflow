@@ -80,7 +80,7 @@ def split_spec(S, win_size, hop_size):
     X = []
     i = 0
     while i + win_size < len(S):
-        x = S[i:i + win_size]
+        x = S[i : i + win_size]
         X.append(x)
         i += hop_size
     if not X:
@@ -97,7 +97,7 @@ def split_spec_tf(S, win_size, hop_size, label=None):
         return tf.less(index + win_size, length)
 
     def body(i, index, X, Y=None):
-        temp = S[index:index + win_size, ...]
+        temp = S[index : index + win_size, ...]
         X = X.write(i, temp)
         if label is not None:
             Y = Y.write(i, label)
@@ -108,7 +108,7 @@ def split_spec_tf(S, win_size, hop_size, label=None):
         Y = tf.TensorArray(dtype=label.dtype, infer_shape=False, size=1, dynamic_size=True)
         _, _, X, Y = tf.while_loop(cond, body, [0, 0, X, Y])
         Y = Y.stack()
-        Y = tf.reshape(Y, [-1] + label.shape[min(1, len(label.shape) - 1):].as_list())
+        Y = tf.reshape(Y, [-1] + label.shape[min(1, len(label.shape) - 1) :].as_list())
         X = X.stack()
         X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
         return X, Y

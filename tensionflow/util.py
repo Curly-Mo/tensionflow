@@ -36,11 +36,7 @@ def indexify(labels, label_dict=None):
                     distinct.add(label)
         distinct = sorted(distinct)
         label_dict = bidict((label, index) for index, label in enumerate(distinct))
-    logger.info(
-        'Converting labels to index range: [%s-%s]',
-        min(label_dict.values()),
-        max(label_dict.values()),
-    )
+    logger.info('Converting labels to index range: [%s-%s]', min(label_dict.values()), max(label_dict.values()))
     y = [map_if_collection(label_dict.get, label) for label in labels]
     return y, label_dict
 
