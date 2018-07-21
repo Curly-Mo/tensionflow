@@ -45,27 +45,15 @@ class BaseModel(base.Model):
         #     features=features, feature_columns=feature_columns)
         logger.info('input_layer: %s', input_layer)
         net = tf.layers.conv2d(
-            inputs=input_layer,
-            filters=48,
-            kernel_size=[4, height],
-            padding='same',
-            activation=tf.nn.relu,
+            inputs=input_layer, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
         )
         net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
         net = tf.layers.conv2d(
-            inputs=input_layer,
-            filters=48,
-            kernel_size=[4, height],
-            padding='same',
-            activation=tf.nn.relu,
+            inputs=input_layer, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
         )
         net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
         net = tf.layers.conv2d(
-            inputs=input_layer,
-            filters=48,
-            kernel_size=[4, height],
-            padding='same',
-            activation=tf.nn.relu,
+            inputs=input_layer, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
         )
         # net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
         max_pool = tf.reduce_max(net, [1, 2])
@@ -79,13 +67,9 @@ class BaseModel(base.Model):
         # flat = tf.reshape(net, [-1, shape[1] * shape[2] * shape[3]])
         # net = tf.reshape(net, [-1, tf.Dimension(32) * shape[2] * shape[3]])
         net = tf.layers.dense(inputs=net, units=2048, activation=tf.nn.relu)
-        net = tf.layers.dropout(
-            inputs=net, rate=0.8, training=mode == tf.estimator.ModeKeys.TRAIN
-        )
+        net = tf.layers.dropout(inputs=net, rate=0.8, training=mode == tf.estimator.ModeKeys.TRAIN)
         net = tf.layers.dense(inputs=net, units=2048, activation=tf.nn.relu)
-        net = tf.layers.dropout(
-            inputs=net, rate=0.8, training=mode == tf.estimator.ModeKeys.TRAIN
-        )
+        net = tf.layers.dropout(inputs=net, rate=0.8, training=mode == tf.estimator.ModeKeys.TRAIN)
         logits = tf.layers.dense(inputs=net, units=output_shape)
         return logits
 
@@ -96,39 +80,26 @@ class BaseModel(base.Model):
             'probabilities': tf.nn.softmax(logits, name='softmax_tensor'),
         }
         export_outputs = {'features': tf.estimator.export.ClassificationOutput(scores=logits)}
+        export_outputs = {'features': tf.estimator.export.ClassificationOutput(scores=logits)}
         export_outputs = {
-            'features': tf.estimator.export.ClassificationOutput(scores=logits)
-        }
-        export_outputs = {
-            'class': tf.estimator.export.ClassificationOutput(
-                classes=tf.as_string(predictions['classes'])
-            )
+            'class': tf.estimator.export.ClassificationOutput(classes=tf.as_string(predictions['classes']))
         }
 
         if mode == tf.estimator.ModeKeys.PREDICT:
-            return tf.estimator.EstimatorSpec(
-                mode=mode, predictions=predictions, export_outputs=export_outputs
-            )
+            return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions, export_outputs=export_outputs)
 
         logger.info('logits shape: %s', logits.shape)
         logger.info('labels shape: %s', labels.shape)
         loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=logits)
         if mode == tf.estimator.ModeKeys.TRAIN:
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            train_op = optimizer.minimize(
-                loss=loss, global_step=tf.train.get_global_step()
-            )
-            return tf.estimator.EstimatorSpec(
-                mode=mode, loss=loss, train_op=train_op, export_outputs=export_outputs
-            )
+            train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
+            return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op, export_outputs=export_outputs)
 
         if mode == tf.estimator.ModeKeys.EVAL:
             eval_metric_ops = self.metric_ops(labels, logits)
             return tf.estimator.EstimatorSpec(
-                mode=mode,
-                loss=loss,
-                eval_metric_ops=eval_metric_ops,
-                export_outputs=export_outputs,
+                mode=mode, loss=loss, eval_metric_ops=eval_metric_ops, export_outputs=export_outputs
             )
         return None
 
@@ -143,12 +114,8 @@ class BaseModel(base.Model):
             metric_ops[f'recall@k_{k}'] = recall
             # metric_ops[f'f1_score@k_{k}'] = tf.div(tf.multiply(precision, recall), tf.add(precision,recall))
         thresholds = [x / 10.0 for x in range(1, 10)]
-        precisions, prec_ops = tf.metrics.precision_at_thresholds(
-            labels, logits, thresholds=thresholds
-        )
-        recalls, rec_ops = tf.metrics.recall_at_thresholds(
-            labels, logits, thresholds=thresholds
-        )
+        precisions, prec_ops = tf.metrics.precision_at_thresholds(labels, logits, thresholds=thresholds)
+        recalls, rec_ops = tf.metrics.recall_at_thresholds(labels, logits, thresholds=thresholds)
         for i, thresh in enumerate(thresholds):
             metric_ops[f'precision@thresh_{thresh}'] = (precisions[i], prec_ops[i])
             metric_ops[f'recall@thresh_{thresh}'] = (recalls[i], rec_ops[i])
@@ -174,9 +141,7 @@ class BaseModel(base.Model):
     #     model = tf.estimator.Estimator(model_fn=self.model_fn())
     #     return model
 
-    def input_fn(
-        self, dataset, preprocessors=(), batch_size=5, n_epoch=None, buffer_size=10000
-    ):
+    def input_fn(self, dataset, preprocessors=(), batch_size=5, n_epoch=None, buffer_size=10000):
         def f():
             ds = dataset
             for preprocessor in preprocessors:
@@ -203,9 +168,7 @@ class BaseModel(base.Model):
         training = validation = None
         if isinstance(dataset, str):
             # If dataset is a path to a saved dataset, load it
-            dataset = datasets.Dataset(
-                dataset, ['training'], functools.partial(self.prepreprocessor)
-            ).splits['train']
+            dataset = datasets.Dataset(dataset, ['training'], functools.partial(self.prepreprocessor)).splits['train']
         if isinstance(dataset, datasets.Dataset):
             training = dataset.splits['training']
             validation = dataset.splits['validation']
@@ -213,13 +176,9 @@ class BaseModel(base.Model):
         # estimator.train(input_fn=self.input_fn(training, self.preprocessor), steps=50)
         # if validation:
         #     estimator.evaluate(input_fn=self.input_fn(validation, self.preprocessor), steps=50)
-        train_spec = tf.estimator.TrainSpec(
-            input_fn=self.input_fn(training, self.preprocessors)
-        )
+        train_spec = tf.estimator.TrainSpec(input_fn=self.input_fn(training, self.preprocessors))
         eval_spec = tf.estimator.EvalSpec(
-            input_fn=self.input_fn(validation, self.preprocessors),
-            start_delay_secs=10,
-            throttle_secs=150,
+            input_fn=self.input_fn(validation, self.preprocessors), start_delay_secs=10, throttle_secs=150
         )
         tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
@@ -253,9 +212,7 @@ class BaseModel(base.Model):
         # serving_input_receiver_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
 
         def serving_input_receiver_fn():
-            inputs = {
-                'features': tf.placeholder(shape=[None, None, 128], dtype=tf.float32)
-            }
+            inputs = {'features': tf.placeholder(shape=[None, None, 128], dtype=tf.float32)}
             return tf.estimator.export.ServingInputReceiver(inputs, inputs)
 
         # def serving_input_receiver_fn():
@@ -266,11 +223,7 @@ class BaseModel(base.Model):
         #     return tf.estimator.export.ServingInputReceiver(feature_spec, feature_spec)
         # serving_input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_spec)
         self.estimator.export_savedmodel(
-            base_dir,
-            serving_input_receiver_fn,
-            assets_extra=None,
-            as_text=False,
-            checkpoint_path=None,
+            base_dir, serving_input_receiver_fn, assets_extra=None, as_text=False, checkpoint_path=None
         )
 
     def load(self, saved_path=None):
@@ -282,9 +235,7 @@ class BaseModel(base.Model):
             os.rmdir(model_dir)
             logger.info('Copying %s to %s', saved_path, model_dir)
             shutil.copytree(saved_path, model_dir)
-        self.estimator = tf.estimator.Estimator(
-            model_fn=self.model_fn(), model_dir=model_dir
-        )
+        self.estimator = tf.estimator.Estimator(model_fn=self.model_fn(), model_dir=model_dir)
 
     # def import(self path):
     #     self.predict_fn = predictor.from_saved_model(path)
@@ -302,9 +253,7 @@ class BaseModel(base.Model):
 
     @property
     def preprocessors(self):
-        return [
-            processing.Preprocessor(functools.partial(self.preprocessor), flatten=True)
-        ]
+        return [processing.Preprocessor(functools.partial(self.preprocessor), flatten=True)]
 
     def prepreprocessor(self, x, y=None):
         x = feature.mel_spec(x, n_fft=self.n_fft, sr=self.sr)
@@ -316,9 +265,7 @@ class BaseModel(base.Model):
         if y is not None:
             y = tf.one_hot(y, len(self.metadata['label_dict']), dtype=tf.uint8)
             y = tf.reduce_sum(y, 0)
-        slices = feature.split_spec_tf(
-            x, label=y, win_size=self.win_size, hop_size=self.hop_size
-        )
+        slices = feature.split_spec_tf(x, label=y, win_size=self.win_size, hop_size=self.hop_size)
         return slices
 
     @property
@@ -335,11 +282,7 @@ class BaseModel(base.Model):
             return X, Y
 
         return util.wrap_tf_py_func(
-            f,
-            Tout=[
-                self.metadata['data_struct'][0]['dtype'],
-                self.metadata['data_struct'][1]['dtype'],
-            ],
+            f, Tout=[self.metadata['data_struct'][0]['dtype'], self.metadata['data_struct'][1]['dtype']]
         )
 
     def metafile(self, directory):
