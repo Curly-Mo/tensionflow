@@ -4,7 +4,6 @@ import os
 import shutil
 import pickle  # nosec
 import tempfile
-import abc
 
 import numpy as np
 import tensorflow as tf
@@ -15,25 +14,23 @@ from tensionflow import feature
 from tensionflow import datasets
 from tensionflow import util
 from tensionflow import processing
+from tensionflow import models
 
 logger = logging.getLogger(__name__)
 
 # tf.logging._logger.propagate = False
 
 
-class Model(abc.ABC):
-    def __init__(self, name='BaseModel', load_from=None):
+class BaseModel(models.Model):
+    def __init__(self, *args, name='BaseModel', **kwargs):
         self.n_fft = 2048
         self.sr = 11025
         self.win_size = 64
         self.hop_size = self.win_size * 15 // 16
         self.learning_rate = 0.001
-        self.name = name
-        self.metadata = {}
-        self.sess = tf.Session()
-        self.load(load_from)
+        self.estimator = None
+        super().__init__(*args, name=name, **kwargs)
 
-    @abc.abstractmethod
     def network(self, features, output_shape, mode):
         # Add channel dimension
         input_layer = tf.expand_dims(features, -1)
@@ -74,8 +71,8 @@ class Model(abc.ABC):
         logits = tf.layers.dense(inputs=net, units=output_shape)
         return logits
 
-    @abc.abstractmethod
     def estimator_spec(self, logits, labels, mode):
+        self.save()
         predictions = {
             'logits': logits,
             'classes': tf.argmax(input=logits, axis=1),
@@ -105,7 +102,6 @@ class Model(abc.ABC):
             )
         return None
 
-    @abc.abstractmethod
     def metric_ops(self, labels, logits):
         labels = tf.cast(labels, tf.int64)
         logits = tf.nn.sigmoid(logits)
@@ -125,147 +121,16 @@ class Model(abc.ABC):
             # metric_ops[f'f1_score@thresh_{thresh}'] = (precisions[i] * recalls[i]) / (precision[i] + recall[i])
         return metric_ops
 
-    def output_shape(self, labels):
-        if labels is not None:
-            self.metadata['output_shape'] = labels.shape[-1]
-        return self.metadata['output_shape']
-
-    def model_fn(self):
-        def f(features, labels, mode):
-            logits = self.network(features, self.output_shape(labels), mode)
-            estimator_spec = self.estimator_spec(logits, labels, mode)
-            return estimator_spec
-
-        return f
-
-    # @property
-    # @functools.lru_cache()
-    # def estimator(self):
-    #     model = tf.estimator.Estimator(model_fn=self.model_fn())
-    #     return model
-
-    def input_fn(self, dataset, preprocessors=(), batch_size=5, n_epoch=None, buffer_size=10000):
-        def f():
-            ds = dataset
-            for preprocessor in preprocessors:
-                print(preprocessor.func)
-                ds = preprocessor.apply(ds)
-            ds = ds.shuffle(buffer_size=buffer_size)
-            ds = ds.batch(batch_size)
-            ds = ds.repeat(n_epoch)
-            iterator = ds.make_one_shot_iterator().get_next()
-            print(iterator)
-            return iterator
-            # try:
-            #     features, labels = iterator
-            #     features = {'features': features}
-            #     return features, labels
-            # except:
-            #     features = {'features': iterator}
-            #     return features
-
-        return f
-
-    def train(self, dataset):
-        self.metadata = dataset.meta
-        training = validation = None
-        if isinstance(dataset, str):
-            # If dataset is a path to a saved dataset, load it
-            dataset = datasets.Dataset(dataset, ['training'], functools.partial(self.prepreprocessor)).splits['train']
-        if isinstance(dataset, datasets.Dataset):
-            training = dataset.splits['training']
-            validation = dataset.splits['validation']
-        estimator = self.estimator
-        # estimator.train(input_fn=self.input_fn(training, self.preprocessor), steps=50)
-        # if validation:
-        #     estimator.evaluate(input_fn=self.input_fn(validation, self.preprocessor), steps=50)
-        train_spec = tf.estimator.TrainSpec(input_fn=self.input_fn(training, self.preprocessors))
-        eval_spec = tf.estimator.EvalSpec(
-            input_fn=self.input_fn(validation, self.preprocessors), start_delay_secs=10, throttle_secs=150
-        )
-        tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
-
-    def predict(self, elements):
-        tf.Graph().as_default()
-        ds = tf.data.Dataset.from_tensor_slices(elements)
-        logger.info(ds)
-        estimator = self.estimator
-        preprocessors = self.prepreprocessors + self.preprocessors
-        return estimator.predict(self.input_fn(ds, preprocessors))
-
-    def save(self, output_dir='saved_models', force=False):
-        dst = os.path.join(output_dir, self.name)
-        try:
-            logger.info('Copying %s to %s', self.estimator.model_dir, dst)
-            if force:
-                if os.path.exists(output_dir) and output_dir != dst:
-                    shutil.rmtree(output_dir)
-            shutil.copytree(self.estimator.model_dir, dst)
-        except OSError as _:
-            logger.error('Directory already exists: %s. (use force=True)', dst)
-        with open(self.metafile(dst), 'wb') as handle:
-            pickle.dump(self.metadata, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    def export(self, base_dir):
-        # feature_spec = {'features': tf.FixedLenSequenceFeature([128], dtype=tf.float32, allow_missing=True)}
-        # feature_spec = tf.feature_column.make_parse_example_spec([])
-        # feature_spec = {'features': tf.VarLenFeature(dtype=tf.float32)}
-        # feature_spec = {'features': tf.placeholder(dtype=tf.float32)}
-        # feature_spec = {'features': tf.zeros([10, 128], dtype=tf.float32)}
-        # serving_input_receiver_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
-
-        def serving_input_receiver_fn():
-            inputs = {'features': tf.placeholder(shape=[None, None, 128], dtype=tf.float32)}
-            return tf.estimator.export.ServingInputReceiver(inputs, inputs)
-
-        # def serving_input_receiver_fn():
-        #     features = tf.placeholder(dtype=tf.float32,
-        #                              shape=[None, None, 128],
-        #                              name='input_example_tensor')
-        #     feature_spec = {'features': features}
-        #     return tf.estimator.export.ServingInputReceiver(feature_spec, feature_spec)
-        # serving_input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_spec)
-        self.estimator.export_savedmodel(
-            base_dir, serving_input_receiver_fn, assets_extra=None, as_text=False, checkpoint_path=None
-        )
-
-    def load(self, saved_path=None):
-        model_dir = tempfile.mkdtemp(prefix='tensionflow.')
-        if saved_path:
-            logger.info('Loading metadata from %s', self.metafile(saved_path))
-            with open(self.metafile(saved_path), 'rb') as handle:
-                self.metadata = pickle.load(handle)  # nosec
-            os.rmdir(model_dir)
-            logger.info('Copying %s to %s', saved_path, model_dir)
-            shutil.copytree(saved_path, model_dir)
-        self.estimator = tf.estimator.Estimator(model_fn=self.model_fn(), model_dir=model_dir)
-
-    # def import(self path):
-    #     self.predict_fn = predictor.from_saved_model(path)
-    #     # self.estimator = tf.saved_model.loader.load(self.sess, ['serve'], path)
-
-    @property
-    def prepreprocessors(self):
-        return [
-            processing.PythonPreprocessor(
-                functools.partial(self.prepreprocessor),
-                output_dtypes=[tf.float32, tf.int32],
-                output_shapes=([-1, 128], [-1]),
-            )
-        ]
-
     @property
     def preprocessors(self):
         return [processing.Preprocessor(functools.partial(self.preprocessor), flatten=True)]
 
-    @abc.abstractmethod
     def prepreprocessor(self, x, y=None):
         x = feature.mel_spec(x, n_fft=self.n_fft, sr=self.sr)
         if y:
             return x, y
         return x
 
-    @abc.abstractmethod
     def preprocessor(self, x, y=None):
         if y is not None:
             y = tf.one_hot(y, len(self.metadata['label_dict']), dtype=tf.uint8)

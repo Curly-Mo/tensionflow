@@ -22,7 +22,7 @@ tensionflow = 'tensionflow.cli:cli'
 
 # Requirements
 [tool.poetry.dependencies]
-python = "^3.4"
+python = "^3.6"
 typing = "^3.6"
 click = "^6.7"
 bidict = "^0.14"
@@ -30,6 +30,7 @@ librosa = "^0.6"
 numpy = "^1.14"
 pandas = "^0.23"
 tensorflow = "^1.8"
+tensorboard = "^1.9"
 llvmlite = "^0.24.0"
 
 [tool.poetry.dev-dependencies]
@@ -48,6 +49,7 @@ flake8 = "*"
 isort = "*"
 bandit = "*"
 mypy = { version = "*", optional = true }
+ipython = "^6.4"
 
 [tool.poetry.extras]
 mypy = ["mypy"]

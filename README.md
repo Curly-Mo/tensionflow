@@ -49,6 +49,3 @@ To run with docker
 docker build -t tensionflow .
 docker run tensionflow:latest tensionflow --help
 ```
-
-## License
-[LGPL-3.0](https://github.com/Curly-Mo/tensionflow/blob/master/LICENSE)
