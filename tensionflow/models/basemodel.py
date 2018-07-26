@@ -1,9 +1,6 @@
 import logging
 import functools
 import os
-import shutil
-import pickle  # nosec
-import tempfile
 
 import numpy as np
 import tensorflow as tf
@@ -11,24 +8,22 @@ import tensorflow as tf
 # from tensorflow.contrib import predictor
 
 from tensionflow import feature
-from tensionflow import datasets
 from tensionflow import util
 from tensionflow import processing
-from tensionflow import models
+from tensionflow.models import base
 
 logger = logging.getLogger(__name__)
 
 # tf.logging._logger.propagate = False
 
 
-class BaseModel(models.Model):
+class BaseModel(base.Model):
     def __init__(self, *args, name='BaseModel', **kwargs):
         self.n_fft = 2048
         self.sr = 11025
         self.win_size = 64
         self.hop_size = self.win_size * 15 // 16
         self.learning_rate = 0.001
-        self.estimator = None
         super().__init__(*args, name=name, **kwargs)
 
     def network(self, features, output_shape, mode):
@@ -72,7 +67,6 @@ class BaseModel(models.Model):
         return logits
 
     def estimator_spec(self, logits, labels, mode):
-        self.save()
         predictions = {
             'logits': logits,
             'classes': tf.argmax(input=logits, axis=1),

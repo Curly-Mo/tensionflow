@@ -50,6 +50,7 @@ isort = "*"
 bandit = "*"
 mypy = { version = "*", optional = true }
 ipython = "^6.4"
+pylint = "^2.0"
 
 [tool.poetry.extras]
 mypy = ["mypy"]

@@ -7,14 +7,11 @@ import tempfile
 import abc
 import time
 
-import numpy as np
 import tensorflow as tf
 
 # from tensorflow.contrib import predictor
 
-from tensionflow import feature
 from tensionflow import datasets
-from tensionflow import util
 from tensionflow import processing
 
 logger = logging.getLogger(__name__)
@@ -31,7 +28,7 @@ class Model(abc.ABC):
         self.metadata = {'class': self.__class__}
         self.sess = tf.Session()
         # self.load()
-        if not self.estimator:
+        if not hasattr(self, 'estimator'):
             model_dir = tempfile.mkdtemp(prefix='tensionflow.')
             self.estimator = tf.estimator.Estimator(model_fn=self.model_fn(), model_dir=model_dir)
 
@@ -53,15 +50,15 @@ class Model(abc.ABC):
 
     @abc.abstractmethod
     def network(self, features, output_shape, mode):
-        return
+        pass
 
     @abc.abstractmethod
     def estimator_spec(self, logits, labels, mode):
-        return
+        pass
 
     @abc.abstractmethod
     def metric_ops(self, labels, logits):
-        return
+        pass
 
     def output_shape(self, labels):
         if labels is not None:
@@ -97,7 +94,7 @@ class Model(abc.ABC):
             try:
                 features, labels = iterator
                 return features, labels
-            except:
+            except ValueError:
                 return iterator[0], None
             # try:
             #     features, labels = iterator
@@ -192,28 +189,11 @@ class Model(abc.ABC):
 
     @abc.abstractmethod
     def prepreprocessor(self, x, y=None):
-        return
+        pass
 
     @abc.abstractmethod
     def preprocessor(self, x, y=None):
-        return
-
-    @property
-    def preprocessor_py(self):
-        def f(x, y=None):
-            X = feature.split_spec(x, win_size=self.win_size, hop_size=self.hop_size)
-            if y is not None:
-                y = sum(np.eye(len(self.metadata['label_dict']))[y])
-                Y = []
-                for _ in range(len(X)):
-                    Y.append(y)
-                Y = np.stack(Y).astype(np.int32)
-            X = np.stack(X)
-            return X, Y
-
-        return util.wrap_tf_py_func(
-            f, Tout=[self.metadata['data_struct'][0]['dtype'], self.metadata['data_struct'][1]['dtype']]
-        )
+        pass
 
     @staticmethod
     def metafile(directory):

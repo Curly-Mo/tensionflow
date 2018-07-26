@@ -7,9 +7,9 @@ import click
 from tensionflow import models
 from tensionflow import datasets
 from tensionflow import util
-from tensionflow.datasets import fma
 from tensionflow.util import cli_util
-from tensionflow.models.basemodel import BaseModel
+import tensionflow.datasets.fma  # noqa
+import tensionflow.models.basemodel  # noqa
 
 logger = logging.getLogger(__name__)
 # tf.logging._logger.propagate = False
@@ -27,11 +27,14 @@ def cli(verbose):
 
 @cli.command()
 @click.option('-m', '--model', cls=cli_util.Mutex, mutex_with=['saved_model'], type=click.Choice(ALL_MODELS.keys()))
-@click.option('-d', '--dataset', cls=cli_util.Mutex, mutex_with=['saved_dataset'], type=click.Choice(ALL_DATASETS.keys()))
+@click.option(
+    '-d', '--dataset', cls=cli_util.Mutex, mutex_with=['saved_dataset'], type=click.Choice(ALL_DATASETS.keys())
+)
 @click.option('--saved_model', cls=cli_util.Mutex, mutex_with=['model'], type=click.Path(exists=True))
 @click.option('--saved_dataset', cls=cli_util.Mutex, mutex_with=['dataset'], type=click.Path(exists=True))
 def train(model, dataset, saved_model, saved_dataset):
     """Train a model with a given dataset"""
+    print(model)
     if model:
         m = ALL_MODELS[model]()
     else:
@@ -41,9 +44,10 @@ def train(model, dataset, saved_model, saved_dataset):
     else:
         ds = datasets.Dataset(filepath=saved_dataset)
     click.echo(f'Training {m.__class__.__name__} with {ds.__class__.__name__}')
+    return
     try:
         m.train(ds)
-    except:
+    except KeyboardInterrupt:
         click.echo('Abort! Save the model now')
         print(sys.exc_info()[0])
         model.save()
@@ -53,7 +57,7 @@ def train(model, dataset, saved_model, saved_dataset):
 @click.argument('model', type=click.Path(exists=True))
 @click.argument('audiofile', nargs=-1, type=click.Path(exists=True))
 def predict(model, audiofile):
-    """Train a model with a given dataset"""
+    """Predict a file[s] using a given model"""
     m = models.Model.load(model)
     audiofiles = list(audiofile)
     click.echo(f'Predicting {audiofiles} using trained {m.__class__.__name__}, {model}')
