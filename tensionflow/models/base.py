@@ -30,9 +30,7 @@ class Model(abc.ABC):
         # self.load()
         if not hasattr(self, 'estimator'):
             model_dir = tempfile.mkdtemp(prefix='tensionflow.')
-            self.estimator = tf.estimator.Estimator(
-                model_fn=self.model_fn(), model_dir=model_dir
-            )
+            self.estimator = tf.estimator.Estimator(model_fn=self.model_fn(), model_dir=model_dir)
 
     @staticmethod
     def load(saved_path=None):
@@ -47,9 +45,7 @@ class Model(abc.ABC):
             os.rmdir(model_dir)
             logger.info('Copying %s to %s', saved_path, model_dir)
             shutil.copytree(saved_path, model_dir)
-        model.estimator = tf.estimator.Estimator(
-            model_fn=model.model_fn(), model_dir=model_dir
-        )
+        model.estimator = tf.estimator.Estimator(model_fn=model.model_fn(), model_dir=model_dir)
         return model
 
     @abc.abstractmethod
@@ -83,9 +79,7 @@ class Model(abc.ABC):
     #     model = tf.estimator.Estimator(model_fn=self.model_fn())
     #     return model
 
-    def input_fn(
-        self, dataset, preprocessors=(), batch_size=5, n_epoch=None, buffer_size=10000
-    ):
+    def input_fn(self, dataset, preprocessors=(), batch_size=5, n_epoch=None, buffer_size=10000):
         def f():
             ds = dataset
             for preprocessor in preprocessors:
@@ -113,9 +107,7 @@ class Model(abc.ABC):
         training = validation = None
         if isinstance(dataset, str):
             # If dataset is a path to a saved dataset, load it
-            dataset = datasets.Dataset(
-                dataset, ['training'], functools.partial(self.prepreprocessor)
-            )
+            dataset = datasets.Dataset(dataset, ['training'], functools.partial(self.prepreprocessor))
         if isinstance(dataset, datasets.Dataset):
             training = dataset.splits['training']
             validation = dataset.splits['validation']
@@ -133,11 +125,7 @@ class Model(abc.ABC):
         train_input_fn = self.input_fn(training, self.preprocessors)
         eval_input_fn = self.input_fn(validation, self.preprocessors, n_epoch=1)
         evaluator = tf.contrib.estimator.InMemoryEvaluatorHook(
-            estimator,
-            eval_input_fn,
-            steps=300,
-            name=None,
-            every_n_iter=1000,
+            estimator, eval_input_fn, steps=300, name=None, every_n_iter=1000
         )
         estimator.train(train_input_fn, hooks=[evaluator])
 
@@ -171,9 +159,7 @@ class Model(abc.ABC):
         # serving_input_receiver_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn(feature_spec)
 
         def serving_input_receiver_fn():
-            inputs = {
-                'features': tf.placeholder(shape=[None, None, 128], dtype=tf.float32)
-            }
+            inputs = {'features': tf.placeholder(shape=[None, None, 128], dtype=tf.float32)}
             return tf.estimator.export.ServingInputReceiver(inputs, inputs)
 
         # def serving_input_receiver_fn():
@@ -184,11 +170,7 @@ class Model(abc.ABC):
         #     return tf.estimator.export.ServingInputReceiver(feature_spec, feature_spec)
         # serving_input_receiver_fn = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_spec)
         self.estimator.export_savedmodel(
-            base_dir,
-            serving_input_receiver_fn,
-            assets_extra=None,
-            as_text=False,
-            checkpoint_path=None,
+            base_dir, serving_input_receiver_fn, assets_extra=None, as_text=False, checkpoint_path=None
         )
 
     # def import(self path):
@@ -207,9 +189,7 @@ class Model(abc.ABC):
 
     @property
     def preprocessors(self):
-        return [
-            processing.Preprocessor(functools.partial(self.preprocessor), flatten=True)
-        ]
+        return [processing.Preprocessor(functools.partial(self.preprocessor), flatten=True)]
 
     @abc.abstractmethod
     def prepreprocessor(self, x, y=None):
