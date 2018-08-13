@@ -29,9 +29,9 @@ bidict = "^0.14"
 librosa = "^0.6"
 numpy = "^1.14"
 pandas = "^0.23"
-tensorflow = "^1.8"
-tensorboard = "^1.9"
-llvmlite = "^0.24.0"
+# latest stable release is broken when using InMemoryEvaluatorHook
+# latest nightly won't play nicely with poetry
+tf-nightly = "=1.11.0.dev20180808"
 
 [tool.poetry.dev-dependencies]
 pytest = "~3.4"

@@ -30,13 +30,13 @@ class BaseModel(base.Model):
         # Add channel dimension
         input_layer = tf.expand_dims(features, -1)
         # input_layer = tf.expand_dims(features['features'], -1)
+        logger.debug('input_shape: %s', input_layer.shape)
         height = input_layer.shape[-2]
-        logger.info('height: %s', height)
+        logger.debug('height: %s', height)
         # feature_columns = [tf.feature_column.numeric_column('features', dtype=tf.float32)]
         # input_layer = tf.feature_column.input_layer(features=features, feature_columns=feature_columns)
         # input_layer = tf.contrib.feature_column.sequence_input_layer(
         #     features=features, feature_columns=feature_columns)
-        logger.info('input_layer: %s', input_layer)
         net = tf.layers.conv2d(
             inputs=input_layer, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
         )
@@ -51,10 +51,10 @@ class BaseModel(base.Model):
         # net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
         max_pool = tf.reduce_max(net, [1, 2])
         mean_pool = tf.reduce_mean(net, [1, 2])
-        logger.info(max_pool)
-        logger.info(mean_pool)
+        logger.debug(max_pool)
+        logger.debug(mean_pool)
         net = tf.concat([max_pool, mean_pool], -1)
-        logger.info(net)
+        logger.debug(net)
         # shape = net.shape
         # logger.info(f'pool shape: {shape}')
         # flat = tf.reshape(net, [-1, shape[1] * shape[2] * shape[3]])
@@ -73,7 +73,6 @@ class BaseModel(base.Model):
             'probabilities': tf.nn.softmax(logits, name='softmax_tensor'),
         }
         export_outputs = {'features': tf.estimator.export.ClassificationOutput(scores=logits)}
-        export_outputs = {'features': tf.estimator.export.ClassificationOutput(scores=logits)}
         export_outputs = {
             'class': tf.estimator.export.ClassificationOutput(classes=tf.as_string(predictions['classes']))
         }
@@ -81,8 +80,8 @@ class BaseModel(base.Model):
         if mode == tf.estimator.ModeKeys.PREDICT:
             return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions, export_outputs=export_outputs)
 
-        logger.info('logits shape: %s', logits.shape)
-        logger.info('labels shape: %s', labels.shape)
+        logger.debug('logits shape: %s', logits.shape)
+        logger.debug('labels shape: %s', labels.shape)
         loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=logits)
         if mode == tf.estimator.ModeKeys.TRAIN:
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
@@ -114,10 +113,6 @@ class BaseModel(base.Model):
             metric_ops[f'recall@thresh_{thresh}'] = (recalls[i], rec_ops[i])
             # metric_ops[f'f1_score@thresh_{thresh}'] = (precisions[i] * recalls[i]) / (precision[i] + recall[i])
         return metric_ops
-
-    @property
-    def preprocessors(self):
-        return [processing.Preprocessor(functools.partial(self.preprocessor), flatten=True)]
 
     def prepreprocessor(self, x, y=None):
         x = feature.mel_spec(x, n_fft=self.n_fft, sr=self.sr)

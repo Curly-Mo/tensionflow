@@ -44,13 +44,12 @@ def train(model, dataset, saved_model, saved_dataset):
     else:
         ds = datasets.Dataset(filepath=saved_dataset)
     click.echo(f'Training {m.__class__.__name__} with {ds.__class__.__name__}')
-    return
     try:
         m.train(ds)
     except KeyboardInterrupt:
         click.echo('Abort! Save the model now')
         print(sys.exc_info()[0])
-        model.save()
+        # model.save()
 
 
 @cli.command()
@@ -68,6 +67,12 @@ def predict(model, audiofile):
 
 def initLogging(verbosity):
     """Setup logging with a given verbosity level"""
+    import logging.config
+    # tensorflow logging is a mess, disable the default handler or it will dupe every log
+    from tensorflow.python.platform import tf_logging
+    tf_logger = tf_logging._get_logger()
+    tf_logger.handlers = []
+    # logging.config.fileConfig('logging_config.ini', disable_existing_loggers=False)
     logging.basicConfig()
     if verbosity == 0:
         logging.root.setLevel(logging.WARN)

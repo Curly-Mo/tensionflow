@@ -1,5 +1,7 @@
 import logging
 import collections
+import functools
+
 import numpy as np
 import librosa
 import tensorflow as tf
@@ -90,8 +92,8 @@ def split_spec(S, win_size, hop_size):
 
 def split_spec_tf(S, win_size, hop_size, label=None):
     length = tf.shape(S)[0]
-    logger.info(length)
-    X = tf.TensorArray(dtype=S.dtype, infer_shape=False, size=1, dynamic_size=True)
+    logger.debug(length)
+    X = tf.TensorArray(dtype=S.dtype, infer_shape=False, size=0, dynamic_size=True)
 
     def cond(i, index, X, Y=None):  # pylint: disable=unused-argument
         return tf.less(index + win_size, length)
@@ -104,19 +106,24 @@ def split_spec_tf(S, win_size, hop_size, label=None):
             return i + 1, index + hop_size, X, Y
         return i + 1, index + hop_size, X
 
+    def empty_tensors(X, Y):
+        x = tf.constant(0, shape=[0, win_size] + S.shape[1:].as_list(), dtype=X.dtype)
+        if Y is not None:
+            y = tf.constant(0, shape=[0] + label.shape[min(1, len(label.shape) - 1) :].as_list(), dtype=Y.dtype)
+            return x, y
+        return x
+
+    Y = None
     if label is not None:
-        Y = tf.TensorArray(dtype=label.dtype, infer_shape=False, size=1, dynamic_size=True)
-        _, _, X, Y = tf.while_loop(cond, body, [0, 0, X, Y])
-        Y = Y.stack()
+        Y = tf.TensorArray(dtype=label.dtype, infer_shape=False, size=0, dynamic_size=True)
+    count, _, X, Y = tf.while_loop(cond, body, [0, 0, X, Y], parallel_iterations=1)
+    # tensorflow can't stack an empty array, this hack returns an empty tensor of same shape if array is empty
+    X, Y = tf.cond(count > 0, lambda: (X.stack(), Y.stack()), functools.partial(empty_tensors, X, Y))
+    # reshape so that the shape is known
+    X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
+    if Y is not None:
         Y = tf.reshape(Y, [-1] + label.shape[min(1, len(label.shape) - 1) :].as_list())
-        X = X.stack()
-        X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
-        return X, Y
-    else:
-        _, _, X = tf.while_loop(cond, body, [0, 0, X])
-        X = X.stack()
-        X = tf.reshape(X, [-1, win_size] + S.shape[1:].as_list())
-        return X
+    return X, Y
 
 
 def balanced_sample(X_in, Y_in):
