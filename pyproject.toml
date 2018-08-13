@@ -32,6 +32,7 @@ pandas = "^0.23"
 # latest stable release is broken when using InMemoryEvaluatorHook
 # latest nightly won't play nicely with poetry
 tf-nightly = "=1.11.0.dev20180808"
+llvmlite = "^0.24.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "~3.4"
