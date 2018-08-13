@@ -67,14 +67,14 @@ def predict(model, audiofile):
 
 def initLogging(verbosity):
     """Setup logging with a given verbosity level"""
-    import logging.config
+    # import logging.config
 
     # tensorflow logging is a mess, disable the default handler or it will dupe every log
     from tensorflow.python.platform import tf_logging
 
     tf_logger = tf_logging._get_logger()
     tf_logger.handlers = []
-    # logging.config.fileConfig('logging_config.ini', disable_existing_loggers=False)
+    # logging.onfig.fileConfig('logging_config.ini', disable_existing_loggers=False)
     logging.basicConfig()
     if verbosity == 0:
         logging.root.setLevel(logging.WARN)

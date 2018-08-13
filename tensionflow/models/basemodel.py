@@ -1,5 +1,4 @@
 import logging
-import functools
 import os
 
 import numpy as np
@@ -9,7 +8,6 @@ import tensorflow as tf
 
 from tensionflow import feature
 from tensionflow import util
-from tensionflow import processing
 from tensionflow.models import base
 
 logger = logging.getLogger(__name__)
