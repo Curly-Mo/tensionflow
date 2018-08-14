@@ -84,3 +84,11 @@ def wrap_tf_py_func(py_func, Tout):
         return tf.py_func(py_func, inp=args, Tout=Tout)
 
     return f
+
+
+def get_all_subclasses(cls):
+    all_subclasses = {}
+    for subclass in cls.__subclasses__():
+        all_subclasses[subclass.__name__] = subclass
+        all_subclasses.update(get_all_subclasses(subclass))
+    return all_subclasses
