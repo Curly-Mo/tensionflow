@@ -1,4 +1,4 @@
 from tensionflow.models.base import Model
-from tensionflow.models.basemodel import BaseModel
+from tensionflow.models.convpoolmodel import ConvPoolModel
 
-__all__ = ['Model', 'BaseModel']
+__all__ = ['Model', 'ConvPoolModel']

@@ -1,6 +1,5 @@
 """Command line interface for tensionflow"""
 import logging
-import sys
 
 import click
 
@@ -9,7 +8,7 @@ from tensionflow import datasets
 from tensionflow import util
 from tensionflow.util import cli_util
 import tensionflow.datasets.fma  # noqa
-import tensionflow.models.basemodel  # noqa
+import tensionflow.models.convpoolmodel  # noqa
 
 logger = logging.getLogger(__name__)
 # tf.logging._logger.propagate = False
@@ -26,30 +25,27 @@ def cli(verbose):
 
 
 @cli.command()
-@click.option('-m', '--model', cls=cli_util.Mutex, mutex_with=['saved_model'], type=click.Choice(ALL_MODELS.keys()))
-@click.option(
-    '-d', '--dataset', cls=cli_util.Mutex, mutex_with=['saved_dataset'], type=click.Choice(ALL_DATASETS.keys())
-)
-@click.option('--saved_model', cls=cli_util.Mutex, mutex_with=['model'], type=click.Path(exists=True))
-@click.option('--saved_dataset', cls=cli_util.Mutex, mutex_with=['dataset'], type=click.Path(exists=True))
-def train(model, dataset, saved_model, saved_dataset):
+@click.option('-m', '--model', type=cli_util.CompositeParam([click.Choice(ALL_MODELS.keys()), click.Path(exists=True)]))
+@click.option('-d', '--dataset', type=cli_util.CompositeParam([click.Choice(ALL_DATASETS.keys()), click.Path(exists=True)]))
+def train(model, dataset):
     """Train a model with a given dataset"""
     print(model)
-    if model:
+    print(dataset)
+    try:
         m = ALL_MODELS[model]()
-    else:
-        m = models.Model.load(saved_model)
-    if dataset:
+    except KeyError:
+        m = models.Model.load(model)
+    try:
         ds = ALL_DATASETS[dataset]()
-    else:
-        ds = datasets.Dataset(filepath=saved_dataset)
+    except KeyError:
+        ds = datasets.Dataset(filepath=dataset)
     click.echo(f'Training {m.__class__.__name__} with {ds.__class__.__name__}')
     try:
         m.train(ds)
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as e:
         click.echo('Abort! Save the model now')
-        print(sys.exc_info()[0])
-        # model.save()
+        click.echo(e)
+        m.save()
 
 
 @cli.command()
@@ -67,14 +63,13 @@ def predict(model, audiofile):
 
 def initLogging(verbosity):
     """Setup logging with a given verbosity level"""
-    # import logging.config
-
     # tensorflow logging is a mess, disable the default handler or it will dupe every log
     from tensorflow.python.platform import tf_logging
 
     tf_logger = tf_logging._get_logger()
     tf_logger.handlers = []
-    # logging.onfig.fileConfig('logging_config.ini', disable_existing_loggers=False)
+    # import logging.config
+    # logging.config.fileConfig('logging_config.ini', disable_existing_loggers=False)
     logging.basicConfig()
     if verbosity == 0:
         logging.root.setLevel(logging.WARN)
@@ -82,3 +77,7 @@ def initLogging(verbosity):
         logging.root.setLevel(logging.INFO)
     if verbosity > 0:
         logging.root.setLevel(logging.DEBUG)
+
+
+if __name__ == '__main__':
+    cli()

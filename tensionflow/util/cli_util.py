@@ -25,3 +25,26 @@ class Mutex(click.Option):
                         f'Usage error: `{str(self.name)}` is mutually exclusive with `{str(mutex_opt)}`.'
                     )
         return super(Mutex, self).handle_parse_result(ctx, opts, args)
+
+
+class CompositeParam(click.ParamType):
+    """Param type that can be any of the provided types"""
+    name = 'composite'
+
+    def __init__(self, types):
+        self.types = types
+
+    def get_missing_message(self, param):
+        return '{} does not match any of:\n{}'.format(param, '\nor\n'.join(t.get_missing_message for t in self.types))
+
+    def convert(self, value, param, ctx):
+        exceptions = []
+        for t in self.types:
+            try:
+                return t.convert(value, param, ctx)
+            except click.exceptions.BadParameter as e:
+                exceptions.append(e)
+        self.fail(f'Unable to convert {param} as any of {self.types}.\n{exceptions}', param, ctx)
+
+    def __repr__(self):
+        return f'One of {{{[t.__repr__ for t in self.types]}}}'

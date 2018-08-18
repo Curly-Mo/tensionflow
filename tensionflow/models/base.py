@@ -20,9 +20,13 @@ logger = logging.getLogger(__name__)
 
 
 class Model(abc.ABC):
-    def __init__(self, name='AbstractModel', save_dir=None):
+    def __init__(self, name='AbstractModel', save_dir=None, batch_size=20, eval_examples=None, eval_every_n_examples=100000):
         self.name = name
         self.save_dir = save_dir
+        self.batch_size = batch_size
+        # Measture steps on the example level, not the batch level
+        self.eval_steps = None if eval_examples is None else eval_examples // batch_size
+        self.eval_every_n_iter = None if eval_every_n_examples is None else eval_every_n_examples // batch_size
         if self.save_dir is None:
             self.save_dir = f'{name}.{int(time.time())}'
         self.metadata = {'class': self.__class__}
@@ -79,14 +83,14 @@ class Model(abc.ABC):
     #     model = tf.estimator.Estimator(model_fn=self.model_fn())
     #     return model
 
-    def input_fn(self, dataset, preprocessors=(), batch_size=5, n_epoch=None, buffer_size=10000):
+    def input_fn(self, dataset, preprocessors=(), n_epoch=None, buffer_size=100000):
         def f():
             ds = dataset
             for preprocessor in preprocessors:
                 print(preprocessor.func)
                 ds = preprocessor.apply(ds)
             ds = ds.shuffle(buffer_size=buffer_size)
-            ds = ds.batch(batch_size)
+            ds = ds.batch(self.batch_size)
             ds = ds.repeat(n_epoch)
             iterator = ds.make_one_shot_iterator().get_next()
             print(iterator)
@@ -103,6 +107,7 @@ class Model(abc.ABC):
         return f
 
     def train(self, dataset):
+        logger.info('Training model in tmp location: %s', self.estimator.model_dir)
         self.metadata.update(dataset.meta)
         training = validation = None
         if isinstance(dataset, str):
@@ -125,7 +130,7 @@ class Model(abc.ABC):
         train_input_fn = self.input_fn(training, self.preprocessors)
         eval_input_fn = self.input_fn(validation, self.preprocessors, n_epoch=1)
         evaluator = tf.contrib.estimator.InMemoryEvaluatorHook(
-            estimator, eval_input_fn, steps=300, name=None, every_n_iter=1000
+            estimator, eval_input_fn, steps=self.eval_steps, name=None, every_n_iter=self.eval_every_n_iter
         )
         estimator.train(train_input_fn, hooks=[evaluator])
 

@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 # tf.logging._logger.propagate = False
 
 
-class BaseModel(base.Model):
-    def __init__(self, *args, name='BaseModel', **kwargs):
+class ConvPoolModel(base.Model):
+    def __init__(self, *args, name='ConvPoolModel', **kwargs):
         self.n_fft = 2048
         self.sr = 11025
         self.win_size = 64
