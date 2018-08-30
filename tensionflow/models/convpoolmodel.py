@@ -35,16 +35,17 @@ class ConvPoolModel(base.Model):
         # input_layer = tf.feature_column.input_layer(features=features, feature_columns=feature_columns)
         # input_layer = tf.contrib.feature_column.sequence_input_layer(
         #     features=features, feature_columns=feature_columns)
+        net = input_layer
         net = tf.layers.conv2d(
-            inputs=input_layer, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
+            inputs=net, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
         )
         net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
         net = tf.layers.conv2d(
-            inputs=input_layer, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
+            inputs=net, filters=32, kernel_size=[4, height], padding='same', activation=tf.nn.relu
         )
         net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
         net = tf.layers.conv2d(
-            inputs=input_layer, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
+            inputs=net, filters=24, kernel_size=[4, height], padding='same', activation=tf.nn.relu
         )
         # net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
         max_pool = tf.reduce_max(net, [1, 2])
@@ -57,11 +58,11 @@ class ConvPoolModel(base.Model):
         # logger.info(f'pool shape: {shape}')
         # flat = tf.reshape(net, [-1, shape[1] * shape[2] * shape[3]])
         # net = tf.reshape(net, [-1, tf.Dimension(32) * shape[2] * shape[3]])
-        net = tf.layers.dense(inputs=net, units=2048, activation=tf.nn.relu)
+        net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.relu)
         net = tf.layers.dropout(inputs=net, rate=0.8, training=mode == tf.estimator.ModeKeys.TRAIN)
-        net = tf.layers.dense(inputs=net, units=2048, activation=tf.nn.relu)
-        net = tf.layers.dropout(inputs=net, rate=0.8, training=mode == tf.estimator.ModeKeys.TRAIN)
-        logits = tf.layers.dense(inputs=net, units=output_shape)
+        # net = tf.layers.dense(inputs=net, units=2048, activation=tf.nn.relu)
+        # net = tf.layers.dropout(inputs=net, rate=0.8, training=mode == tf.estimator.ModeKeys.TRAIN)
+        logits = tf.layers.dense(inputs=net, units=output_shape, activation=None)
         return logits
 
     def estimator_spec(self, logits, labels, mode):
@@ -84,6 +85,8 @@ class ConvPoolModel(base.Model):
         if mode == tf.estimator.ModeKeys.TRAIN:
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
+            for var in tf.trainable_variables():
+                tf.summary.histogram(var.name, var)
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op, export_outputs=export_outputs)
 
         if mode == tf.estimator.ModeKeys.EVAL:
