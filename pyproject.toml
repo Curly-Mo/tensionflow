@@ -33,7 +33,9 @@ pandas = "^0.23"
 # latest nightly won't play nicely with poetry
 tf-nightly = "=1.11.0.dev20180808"
 llvmlite = "^0.24.0"
+# tensorflow = {path = "./lib/tensorflow-1.8.0rc1-cp36-cp36m-linux_x86_64.sycl.whl"}
 
+tensorboard = "^1.10"
 [tool.poetry.dev-dependencies]
 pytest = "~3.4"
 pytest-cov = "~2.5"

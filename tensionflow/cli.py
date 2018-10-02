@@ -31,14 +31,8 @@ def train(model, dataset):
     """Train a model with a given dataset"""
     print(model)
     print(dataset)
-    try:
-        m = ALL_MODELS[model]()
-    except KeyError:
-        m = models.Model.load(model)
-    try:
-        ds = ALL_DATASETS[dataset]()
-    except KeyError:
-        ds = datasets.Dataset(filepath=dataset)
+    m = parse_model_argument(model)
+    ds = parse_dataset_argument(dataset)
     click.echo(f'Training {m.__class__.__name__} with {ds.__class__.__name__}')
     try:
         m.train(ds)
@@ -61,6 +55,18 @@ def predict(model, audiofile):
         click.echo(prediction)
 
 
+@cli.command()
+@click.argument('model', type=cli_util.CompositeParam([click.Choice(ALL_MODELS.keys()), click.Path(exists=True)]))
+@click.argument('dataset', type=click.Choice(ALL_DATASETS.keys()))
+@click.argument('output', type=click.Path())
+def save_dataset(model, dataset, output):
+    """Save a dataset after applying the given model's preprocessing to each element"""
+    m = parse_model_argument(model)
+    ds = parse_dataset_argument(dataset)
+    click.echo(f"Processing {ds.__class__.__name__} using {m.__class__.__name__}'s preprocessor and saving to: {output}")
+    ds.dump(output)
+
+
 def initLogging(verbosity):
     """Setup logging with a given verbosity level"""
     # tensorflow logging is a mess, disable the default handler or it will dupe every log
@@ -77,6 +83,20 @@ def initLogging(verbosity):
         logging.root.setLevel(logging.INFO)
     if verbosity > 0:
         logging.root.setLevel(logging.DEBUG)
+
+
+def parse_model_argument(model_arg):
+    try:
+        return ALL_MODELS[model_arg]()
+    except KeyError:
+        return models.Model.load(model_arg)
+
+
+def parse_dataset_argument(dataset_arg):
+    try:
+        return ALL_DATASETS[dataset_arg]()
+    except KeyError:
+        return datasets.Dataset(filepath=dataset_arg)
 
 
 if __name__ == '__main__':
