@@ -12,7 +12,7 @@ DATA_DIR = '~/datasets/fma'
 
 
 class FmaDataset(datasets.Dataset):
-    def __init__(self, *args, size='large', data_dir=DATA_DIR, **kwargs):
+    def __init__(self, *args, size='small', data_dir=DATA_DIR, **kwargs):
         self.data_dir = data_dir
         self.size = size
         super().__init__(*args, **kwargs)
@@ -60,7 +60,7 @@ class FmaDataset(datasets.Dataset):
                 tracks[column] = pd.to_datetime(tracks[column])
 
             SUBSETS = ('small', 'medium', 'large')
-            tracks['set', 'subset'] = tracks['set', 'subset'].astype('category', categories=SUBSETS, ordered=True)
+            tracks['set', 'subset'] = tracks['set', 'subset'].astype(pd.api.types.CategoricalDtype(categories=SUBSETS, ordered=True))
 
             COLUMNS = [('track', 'license'), ('artist', 'bio'), ('album', 'type'), ('album', 'information')]
             for column in COLUMNS:

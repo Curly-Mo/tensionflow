@@ -1,6 +1,6 @@
 import collections
 import logging
-from functools import partial
+import functools
 import pathlib
 import os
 import pickle  # nosec
@@ -21,6 +21,7 @@ class Dataset:
         self.meta = {}
         self.splits = {}
         self.meta['data_struct'] = tuple()
+        self.meta['num_examples'] = 0
         self.errors = []
         self.examples_per_shard = examples_per_shard
         if compress.lower() == 'zlib':
@@ -74,13 +75,14 @@ class Dataset:
                         parse_data_structure(new, old)
                         for new, old in itertools.zip_longest(data, self.meta['data_struct'])
                     )
+                    self.meta['num_examples'] += 1
                     yield data
                 except Exception as e:
                     logger.warning('Error preprocessing value: %s', x)
                     logger.warning(e)
                     self.errors.append((x, y))
 
-        data_gen = partial(gen, X, Y)
+        data_gen = functools.partial(gen, X, Y)
         dataset = tf.data.Dataset.from_generator(data_gen, (x_dtype, y_dtype))
         # TODO: shuffle before preprocessor
         # dataset = dataset.shuffle(buffer_size=len(X))
@@ -118,7 +120,7 @@ class Dataset:
         with open(filename, 'wb') as handle:
             pickle.dump(self.meta, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def load(self, filepath, split='training', dtypes=None, gzip=False):
+    def load(self, filepath, split='training', dtypes=None):
         """Load a dataset from a tfrecord"""
         if dtypes is None:
             dtypes = {'labels': tf.int64, 'features': tf.float32}
