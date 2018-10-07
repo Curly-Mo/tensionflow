@@ -121,7 +121,7 @@ class Dataset:
             pickle.dump(self.meta, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def load(self, filepath, split='training', dtypes=None):
-        """Load a dataset from a tfrecord"""
+        """Load a dataset from tfrecords"""
         if dtypes is None:
             dtypes = {'labels': tf.int64, 'features': tf.float32}
         x_struct, _ = self.meta['data_struct']
@@ -134,8 +134,9 @@ class Dataset:
             labels = tf.sparse_tensor_to_dense(context['y'], default_value=util.default_of_type(dtypes['labels']))
             return features, labels
 
+        files = tf.data.Dataset.list_files(self.datasetglob(filepath, split), shuffle=True, seed=None)
         compression_type = tf.python_io.TFRecordOptions.get_compression_type_string(self.tfrecord_options)
-        dataset = tf.data.TFRecordDataset(self.datasetglob(filepath, split), compression_type=compression_type)
+        dataset = tf.data.TFRecordDataset(files, compression_type=compression_type)
         dataset = dataset.map(_parse_function)
         return dataset
 

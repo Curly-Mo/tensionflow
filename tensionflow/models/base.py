@@ -89,7 +89,7 @@ class Model(abc.ABC):
             for preprocessor in preprocessors:
                 print(preprocessor.func)
                 ds = preprocessor.apply(ds)
-            ds = ds.shuffle(buffer_size=buffer_size)
+            ds = ds.shuffle(buffer_size=buffer_size, reshuffle_each_iteration=True, seed=None)
             ds = ds.batch(self.batch_size)
             ds = ds.repeat(n_epoch)
             iterator = ds.make_one_shot_iterator().get_next()
