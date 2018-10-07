@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 
 class Dataset:
     def __init__(
-        self, filepath=None, splits=('training', 'test', 'validation'), preprocessor=None, indexify_labels=True, examples_per_shard=1000, compress='GZIP'
+        self,
+        filepath=None,
+        splits=('training', 'test', 'validation'),
+        preprocessor=None,
+        indexify_labels=True,
+        examples_per_shard=1000,
+        compress='GZIP',
     ):
         self.meta = {}
         self.splits = {}

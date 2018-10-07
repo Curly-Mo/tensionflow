@@ -29,6 +29,7 @@ class Mutex(click.Option):
 
 class CompositeParam(click.ParamType):
     """Param type that can be any of the provided types"""
+
     name = 'composite'
 
     def __init__(self, types):

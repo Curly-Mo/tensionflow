@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 class Model(abc.ABC):
-    def __init__(self, name='AbstractModel', save_dir=None, batch_size=32, eval_examples=3000, eval_every_n_examples=100000):
+    def __init__(
+        self, name='AbstractModel', save_dir=None, batch_size=32, eval_examples=3000, eval_every_n_examples=100000
+    ):
         self.name = name
         self.save_dir = save_dir
         self.batch_size = batch_size

@@ -64,7 +64,9 @@ def save_dataset(model, dataset, output):
     """Save a dataset after applying the given model's preprocessing to each element"""
     m = parse_model_argument(model)
     ds = ALL_DATASETS[dataset](preprocessor=functools.partial(m.prepreprocessor))
-    click.echo(f"Processing {ds.__class__.__name__} using {m.__class__.__name__}'s preprocessor and saving to: {output}")
+    click.echo(
+        f"Processing {ds.__class__.__name__} using {m.__class__.__name__}'s preprocessor and saving to: {output}"
+    )
     ds.dump(output)
 
 

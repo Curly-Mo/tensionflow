@@ -36,17 +36,11 @@ class ConvPoolModel(base.Model):
         # input_layer = tf.contrib.feature_column.sequence_input_layer(
         #     features=features, feature_columns=feature_columns)
         net = input_layer
-        net = tf.layers.conv2d(
-            inputs=net, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu
-        )
+        net = tf.layers.conv2d(inputs=net, filters=48, kernel_size=[4, height], padding='same', activation=tf.nn.relu)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
-        net = tf.layers.conv2d(
-            inputs=net, filters=32, kernel_size=[4, height], padding='same', activation=tf.nn.relu
-        )
+        net = tf.layers.conv2d(inputs=net, filters=32, kernel_size=[4, height], padding='same', activation=tf.nn.relu)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
-        net = tf.layers.conv2d(
-            inputs=net, filters=24, kernel_size=[4, height], padding='same', activation=tf.nn.relu
-        )
+        net = tf.layers.conv2d(inputs=net, filters=24, kernel_size=[4, height], padding='same', activation=tf.nn.relu)
         # net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
         max_pool = tf.reduce_max(net, [1, 2])
         mean_pool = tf.reduce_mean(net, [1, 2])
