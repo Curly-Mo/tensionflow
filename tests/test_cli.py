@@ -15,8 +15,8 @@ def runner():
 
 
 @pytest.fixture
-def mocked_BaseModel(mocker):
-    mocked = mocker.patch('tensionflow.models.basemodel.BaseModel', autospec=True)
+def mocked_ConvPoolModel(mocker):
+    mocked = mocker.patch('tensionflow.models.convpoolmodel.ConvPoolModel', autospec=True)
     mocked.train.return_value = 'trained!'
     return mocked
 
@@ -27,11 +27,11 @@ def mocked_FmaDataset(mocker):
     return mocked
 
 
-def test_predict(mocker, runner, mocked_BaseModel):
+def test_predict(mocker, runner, mocked_ConvPoolModel):
     result = runner.invoke(cli.cli, ['-v predict --model tmp'])
     print(result)
 
 
-def test_cli(mocker, runner, mocked_BaseModel, mocked_FmaDataset):
-    result = runner.invoke(cli.train, ['--model BaseModel --dataset FmaDataset'])
+def test_cli(mocker, runner, mocked_ConvPoolModel, mocked_FmaDataset):
+    result = runner.invoke(cli.train, ['--model ConvPoolModel --dataset FmaDataset'])
     print(result)

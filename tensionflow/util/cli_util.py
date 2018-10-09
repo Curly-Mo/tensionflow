@@ -48,4 +48,5 @@ class CompositeParam(click.ParamType):
         self.fail(f'Unable to convert {param} as any of {self.types}.\n{exceptions}', param, ctx)
 
     def __repr__(self):
-        return f'One of {{{[t.__repr__ for t in self.types]}}}'
+        type_strings = [t.__repr__ for t in self.types]
+        return f'One of {{{type_strings}}}'

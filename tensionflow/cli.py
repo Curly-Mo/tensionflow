@@ -102,5 +102,8 @@ def parse_dataset_argument(dataset_arg, model):
         return datasets.Dataset(filepath=dataset_arg)
 
 
+# Legacy script support, recommended not to use this"""
 if __name__ == '__main__':
-    cli()
+    import sys
+
+    cli(sys.argv[1:])
