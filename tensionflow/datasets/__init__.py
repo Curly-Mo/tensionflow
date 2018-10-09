@@ -1,6 +1,6 @@
 import collections
 import logging
-from functools import partial
+import functools
 import pathlib
 import os
 import pickle  # nosec
@@ -16,12 +16,26 @@ logger = logging.getLogger(__name__)
 
 class Dataset:
     def __init__(
-        self, filepath=None, splits=('training', 'test', 'validation'), preprocessor=None, indexify_labels=True
+        self,
+        filepath=None,
+        splits=('training', 'test', 'validation'),
+        preprocessor=None,
+        indexify_labels=True,
+        examples_per_shard=1000,
+        compress='GZIP',
     ):
         self.meta = {}
         self.splits = {}
         self.meta['data_struct'] = tuple()
+        self.meta['num_examples'] = 0
         self.errors = []
+        self.examples_per_shard = examples_per_shard
+        if compress.lower() == 'zlib':
+            self.tfrecord_options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.ZLIB)
+        if compress.lower() == 'gzip':
+            self.tfrecord_options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.GZIP)
+        else:
+            self.tfrecord_options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.NONE)
         if filepath:
             logger.info('Loading %s datasets from %s', splits, filepath)
             with open(self.metafile(filepath), 'rb') as handle:
@@ -67,13 +81,14 @@ class Dataset:
                         parse_data_structure(new, old)
                         for new, old in itertools.zip_longest(data, self.meta['data_struct'])
                     )
+                    self.meta['num_examples'] += 1
                     yield data
                 except Exception as e:
                     logger.warning('Error preprocessing value: %s', x)
                     logger.warning(e)
                     self.errors.append((x, y))
 
-        data_gen = partial(gen, X, Y)
+        data_gen = functools.partial(gen, X, Y)
         dataset = tf.data.Dataset.from_generator(data_gen, (x_dtype, y_dtype))
         # TODO: shuffle before preprocessor
         # dataset = dataset.shuffle(buffer_size=len(X))
@@ -85,30 +100,34 @@ class Dataset:
         if splits is None:
             splits = [key for key in self.splits]
         for split in splits:
-            filename = self.datasetfile(output, split)
-            logger.info("Saving split '%s' to %s", split, filename)
+            outputglob = self.datasetglob(output, split)
+            logger.info("Saving split '%s' to %s", split, outputglob)
             dataset = self.splits[split]
-            with tf.Session() as sess, tf.python_io.TFRecordWriter(filename) as writer:
+            with tf.Session() as sess:
+                shard = 0
                 next_element = dataset.make_one_shot_iterator().get_next()
-                while True:
-                    try:
-                        x, y = sess.run(next_element)
-                        features = util.map_if_collection(util._dtype_feature, x)
-                        if not isinstance(features, collections.Iterable):
-                            features = [features]
-                        feature_list = {'feature_list': {'x': tf.train.FeatureList(feature=features)}}
-                        context = {'feature': {'y': util._dtype_feature(y)}}
-                        example = tf.train.SequenceExample(feature_lists=feature_list, context=context)
-                        writer.write(example.SerializeToString())
-                    except tf.errors.OutOfRangeError:
-                        break
+                for i in itertools.count():
+                    shard = i // self.examples_per_shard
+                    filename = outputglob.replace('*', str(shard))
+                    with tf.python_io.TFRecordWriter(filename, options=self.tfrecord_options) as writer:
+                        try:
+                            x, y = sess.run(next_element)
+                            features = util.map_if_collection(util._dtype_feature, x)
+                            if not isinstance(features, collections.Iterable):
+                                features = [features]
+                            feature_list = {'feature_list': {'x': tf.train.FeatureList(feature=features)}}
+                            context = {'feature': {'y': util._dtype_feature(y)}}
+                            example = tf.train.SequenceExample(feature_lists=feature_list, context=context)
+                            writer.write(example.SerializeToString())
+                        except tf.errors.OutOfRangeError:
+                            break
         filename = self.metafile(output)
         logger.info('Saving metadata to %s', self.metafile(output))
         with open(filename, 'wb') as handle:
             pickle.dump(self.meta, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def load(self, filepath, split='training', dtypes=None):
-        """Load a dataset from a tfrecord"""
+        """Load a dataset from tfrecords"""
         if dtypes is None:
             dtypes = {'labels': tf.int64, 'features': tf.float32}
         x_struct, _ = self.meta['data_struct']
@@ -121,15 +140,17 @@ class Dataset:
             labels = tf.sparse_tensor_to_dense(context['y'], default_value=util.default_of_type(dtypes['labels']))
             return features, labels
 
-        dataset = tf.data.TFRecordDataset(self.datasetfile(filepath, split))
+        files = tf.data.Dataset.list_files(self.datasetglob(filepath, split), shuffle=True, seed=None)
+        compression_type = tf.python_io.TFRecordOptions.get_compression_type_string(self.tfrecord_options)
+        dataset = tf.data.TFRecordDataset(files, compression_type=compression_type)
         dataset = dataset.map(_parse_function)
         return dataset
 
     def metafile(self, directory):
         return os.path.join(directory, 'metadata')
 
-    def datasetfile(self, directory, split):
-        return os.path.join(directory, f'{split}.tfrecord')
+    def datasetglob(self, directory, split):
+        return os.path.join(directory, f'{split}-*.tfrecord')
 
 
 def parse_data_structure(array, prev_struct=None):

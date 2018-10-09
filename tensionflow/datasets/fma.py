@@ -60,7 +60,9 @@ class FmaDataset(datasets.Dataset):
                 tracks[column] = pd.to_datetime(tracks[column])
 
             SUBSETS = ('small', 'medium', 'large')
-            tracks['set', 'subset'] = tracks['set', 'subset'].astype('category', categories=SUBSETS, ordered=True)
+            tracks['set', 'subset'] = tracks['set', 'subset'].astype(
+                pd.api.types.CategoricalDtype(categories=SUBSETS, ordered=True)
+            )
 
             COLUMNS = [('track', 'license'), ('artist', 'bio'), ('album', 'type'), ('album', 'information')]
             for column in COLUMNS:
