@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class Model(abc.ABC):
     def __init__(
-        self, name='AbstractModel', save_dir=None, batch_size=32, eval_examples=3000, eval_every_n_examples=100000
+        self, name='AbstractModel', save_dir=None, batch_size=32, eval_examples=3000, eval_every_n_examples=100_000
     ):
         self.name = name
         self.save_dir = save_dir
@@ -85,7 +85,7 @@ class Model(abc.ABC):
     #     model = tf.estimator.Estimator(model_fn=self.model_fn())
     #     return model
 
-    def input_fn(self, dataset, preprocessors=(), n_epoch=None, buffer_size=100000):
+    def input_fn(self, dataset, preprocessors=(), n_epoch=None, buffer_size=100_000):
         def f():
             ds = dataset
             for preprocessor in preprocessors:
