@@ -7,7 +7,7 @@ python:
 
 install:
   - pip install poetry
-  - poetry install -v
+  - poetry -vvv install
 
 script:
   - poetry run tox -v
@@ -21,6 +21,13 @@ notifications:
     on_success: change
     on_failure: change
 
-branches:
-  only:
-    - master
+env:
+  global:
+  - secure: DKqwvIgiK11z7oKnfO1GMnPo8sfTAvVzS+9YOgzQlStYgY2jh5nJpU+3JvDPRh/0Ii5Ee/0FqiwqKdfiD+8ljWWCUdfZwW5Bc8KsMm8ZIEDXoq3BRma2TajLz4K7A1urwQ0xd4g7h2xBlvJSGnV2lIUNAWWfvYsbDBnzjqUnIUgSjXTNwV+iuIsfXN0dl5Xc18NCki/Uvg5odEN0TBbadyAD/MYVD2cnNrSWeUKFu8ttneKUt3oRWlLqZEPO88o2j2TlvXrWjgwtpaI4uzHbP5KHbj8yJojBoPuzEIXkZo1m5Zf5Afsbb1nDSOZSvZxEf0fPv2Jcj75UjuBfDzEEJ++0lmNRpQNMspXPwEiY4N+j04KoHB7tFuBweGv5b/6J9dJzn/vpb/T1JEERdqGAvikl2Ok+sLYGdgUBWQfRr9XA6v8Cvx51J6ehRFjCm3gWooOiiVwmahJawxMdHmCxza3F7zpBeFK1o8+jlc4jXmZa7DWiOv9VTeRp50Y+9Ytx6H8sNiknQPr9xkH5IsQSwj0USNLFo38VPixLxnILgyXV7ggKUEsXdrEcRFssD1fOrzpuAU3l9VyqH9BDGzcifDT574EFLO/az6sDJz7iFlvk5m4ga6F6OaupNXsQmXrkoE0clvMMlbSq2wr3bDIBe1cY9oIGKrCkKv0R3jlfZDc=
+  - secure: t72IW7yCfrL6UqCuK/5n/qc9i+Iw65+Oz5xWYzy7q40IbWLIibR/2emRuO/PTHu+XZMGkx6E2WcfV9lok90bG67qy+GVmXaZLMAoyGYMKZ7SFRSKbIAu8y3E3oKLAp1JqyByvf8vIPKO01AYUcaehqvT+htF+1Xnat5LKgzX9DlWNAUQ+UfUZ7d1vRQymqDn89pHiCQO9T5F9XWxImj96t0mBGjyF1ZH0Lzl4SVvuJZTFUwSLNtWGIihx+YzZ6FVc/uDICGaF24Bhq0RTt7TBtEsFNXgWfGe0GPdeTY7OdnvIhkHPZ7tjk3PJvA3YEopd8UxJ5khvCPcGrBcrD8aya3cIPWhCRJtDitPBP1ISls/o7f3ebcpdFxbAOTMYWPFSXE9ErG263p+XfLATIrM4L8D+w0GAWD7K/1olrUDOYOvujQjOyKQt3v25JkqaJetXvRUANxQPgKxy2jQK/frS63Ok3JZpHxQw0tIUgjkCI2ODzSMi0wENjHRTHwPUuY6jPHZYjYubdg2zr2fNdhNEM3AcGq7rCc8Z99OQ+X8smG7UATGwkZJQcfi82a4BTSC94qbCRexs0L95zg8RaghiVxjzKFiNPtO0zL0vDvDpYsdaxblmErfm5q9ZUkRgSHtB1R6Z/EVfg4h4/0ZBcdWAadp4ubNG4KBVywuaE9UaAs=
+deploy:
+  # Deploy tags to PyPi
+  provider: script
+  script: poetry -vvv publish --build -u $PYPI_USER -p $PYPI_PASSWORD
+  on:
+    tags: true
